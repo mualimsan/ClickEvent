@@ -1,0 +1,131 @@
+CREATE DATABASE IF NOT EXISTS event_attendance CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE event_attendance;
+
+CREATE TABLE users (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ name VARCHAR(150) NOT NULL,
+ username VARCHAR(50) NULL UNIQUE,
+ email VARCHAR(190) NOT NULL UNIQUE,
+ password_hash VARCHAR(255) NOT NULL,
+ role ENUM('ADMIN','EVENT_OPERATOR','VIEWER') NOT NULL DEFAULT 'VIEWER',
+ status ENUM('ACTIVE','INACTIVE') NOT NULL DEFAULT 'ACTIVE',
+ last_login_at DATETIME NULL,
+ failed_login_count INT NOT NULL DEFAULT 0,
+ locked_until DATETIME NULL,
+ created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ updated_at DATETIME NULL
+) ENGINE=InnoDB;
+
+CREATE TABLE employees (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ nik VARCHAR(7) NOT NULL UNIQUE CHECK (nik REGEXP '^[0-9]{1,7}$'),
+ name VARCHAR(150) NOT NULL,
+ section VARCHAR(150) NULL,
+ department VARCHAR(150) NULL,
+ division VARCHAR(150) NULL,
+ email VARCHAR(190) NOT NULL,
+ status ENUM('ACTIVE','INACTIVE') NOT NULL DEFAULT 'ACTIVE',
+ created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ updated_at DATETIME NULL,
+ INDEX idx_emp_name(name),
+ INDEX idx_emp_dept(department),
+ INDEX idx_emp_division(division)
+) ENGINE=InnoDB;
+
+CREATE TABLE events (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ event_code VARCHAR(50) NOT NULL UNIQUE,
+ event_name VARCHAR(200) NOT NULL,
+ event_date DATE NOT NULL,
+ start_time TIME NULL,
+ end_time TIME NULL,
+ timezone ENUM('WIB','WITA','WIT') NOT NULL DEFAULT 'WIB',
+ location VARCHAR(255) NULL,
+ description TEXT NULL,
+ status ENUM('DRAFT','PUBLISHED','CLOSED','CANCELLED') NOT NULL DEFAULT 'DRAFT',
+ created_by BIGINT UNSIGNED NULL,
+ created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ updated_at DATETIME NULL,
+ FOREIGN KEY(created_by) REFERENCES users(id) ON DELETE SET NULL,
+ INDEX idx_event_date(event_date),
+ INDEX idx_event_status(status)
+) ENGINE=InnoDB;
+
+CREATE TABLE invitations (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ event_id BIGINT UNSIGNED NOT NULL,
+ employee_id BIGINT UNSIGNED NOT NULL,
+ qr_token_hash CHAR(64) NOT NULL UNIQUE,
+ qr_token_plain VARCHAR(128) NULL,
+ qr_generated_at DATETIME NULL,
+ invitation_status ENUM('INVITED','CANCELLED') NOT NULL DEFAULT 'INVITED',
+ email_status ENUM('PENDING','SENT','FAILED') NOT NULL DEFAULT 'PENDING',
+ email_attempts INT NOT NULL DEFAULT 0,
+ email_sent_at DATETIME NULL,
+ last_email_error VARCHAR(500) NULL,
+ created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ updated_at DATETIME NULL,
+ UNIQUE KEY uq_event_employee(event_id,employee_id),
+ FOREIGN KEY(event_id) REFERENCES events(id) ON DELETE CASCADE,
+ FOREIGN KEY(employee_id) REFERENCES employees(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE attendances (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ invitation_id BIGINT UNSIGNED NOT NULL,
+ checkin_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ checkout_at DATETIME NULL,
+ device_name VARCHAR(150) NULL,
+ operator_user_id BIGINT UNSIGNED NULL,
+ FOREIGN KEY(invitation_id) REFERENCES invitations(id) ON DELETE CASCADE,
+ FOREIGN KEY(operator_user_id) REFERENCES users(id) ON DELETE SET NULL,
+ UNIQUE KEY uq_attendance_invitation(invitation_id)
+) ENGINE=InnoDB;
+
+CREATE TABLE souvenirs (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ code VARCHAR(50) NOT NULL UNIQUE,
+ name VARCHAR(150) NOT NULL,
+ stock INT NOT NULL DEFAULT 0,
+ status ENUM('ACTIVE','INACTIVE') NOT NULL DEFAULT 'ACTIVE',
+ created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ updated_at DATETIME NULL
+) ENGINE=InnoDB;
+
+CREATE TABLE event_souvenirs (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ event_id BIGINT UNSIGNED NOT NULL,
+ souvenir_id BIGINT UNSIGNED NOT NULL,
+ quantity_allocated INT NOT NULL DEFAULT 0,
+ FOREIGN KEY(event_id) REFERENCES events(id) ON DELETE CASCADE,
+ FOREIGN KEY(souvenir_id) REFERENCES souvenirs(id) ON DELETE CASCADE,
+ UNIQUE KEY uq_event_souvenir(event_id,souvenir_id)
+) ENGINE=InnoDB;
+
+CREATE TABLE souvenir_transactions (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ invitation_id BIGINT UNSIGNED NOT NULL,
+ souvenir_id BIGINT UNSIGNED NOT NULL,
+ quantity INT NOT NULL DEFAULT 1,
+ collected_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ operator_user_id BIGINT UNSIGNED NULL,
+ device_name VARCHAR(150) NULL,
+ FOREIGN KEY(invitation_id) REFERENCES invitations(id) ON DELETE CASCADE,
+ FOREIGN KEY(souvenir_id) REFERENCES souvenirs(id) ON DELETE RESTRICT,
+ FOREIGN KEY(operator_user_id) REFERENCES users(id) ON DELETE SET NULL,
+ UNIQUE KEY uq_invitation_souvenir(invitation_id,souvenir_id)
+) ENGINE=InnoDB;
+
+CREATE TABLE audit_logs (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ user_id BIGINT UNSIGNED NULL,
+ action VARCHAR(100) NOT NULL,
+ entity_type VARCHAR(100) NULL,
+ entity_id BIGINT UNSIGNED NULL,
+ description TEXT NULL,
+ ip_address VARCHAR(45) NULL,
+ user_agent VARCHAR(500) NULL,
+ created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE SET NULL,
+ INDEX idx_audit_created(created_at)
+) ENGINE=InnoDB;

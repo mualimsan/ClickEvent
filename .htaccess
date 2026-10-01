@@ -1,0 +1,22 @@
+# Pengaman bila folder aplikasi ini berada di dalam htdocs (mis. XAMPP):
+# hanya folder public/ yang boleh diakses dari web. File rahasia (.env), kode (app/, views/),
+# library (vendor/), database/, dan composer.* ditolak (403).
+# Bila Apache sudah memakai public/ sebagai DocumentRoot, file ini tidak terpakai dan tidak berpengaruh.
+Options -Indexes
+
+<IfModule mod_rewrite.c>
+RewriteEngine On
+# /invitations/ -> /invitations/public/
+RewriteRule ^$ %{REQUEST_URI}public/ [R=302,L]
+# selain public/ ditolak
+RewriteRule !^public(/|$) - [F,L]
+</IfModule>
+
+<IfModule !mod_rewrite.c>
+Require all denied
+</IfModule>
+
+# File tersembunyi (.env, .git, .gitignore, ...) selalu ditolak
+<FilesMatch "^\.">
+Require all denied
+</FilesMatch>
