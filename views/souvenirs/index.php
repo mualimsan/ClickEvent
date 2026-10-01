@@ -29,12 +29,7 @@ function confirmSouvenirsBulkDelete(ev){
   if(page>totalPages)page=totalPages;
   const start=(page-1)*PAGE_SIZE;
   rows.forEach((tr,i)=>{tr.style.display=(i>=start&&i<start+PAGE_SIZE)?'':'none';});
-  const container=document.getElementById('svPagination');container.innerHTML='';
-  if(totalPages<=1)return;
-  const mk=(label,p,disabled)=>{const b=document.createElement('button');b.type='button';b.className='btn-outline-brand';b.style.padding='6px 12px';b.style.fontSize='12.5px';b.textContent=label;b.disabled=disabled;if(disabled)b.style.opacity='.5';b.onclick=()=>{page=p;render();};return b;};
-  container.appendChild(mk('«',page-1,page<=1));
-  container.appendChild(Object.assign(document.createElement('span'),{className:'small text-muted mx-1',textContent:'Halaman '+page+' / '+totalPages}));
-  container.appendChild(mk('»',page+1,page>=totalPages));
+  drawPager(document.getElementById('svPagination'),page,totalPages,p=>{page=p;render();},rows.length,PAGE_SIZE);
  }
  render();
 })();

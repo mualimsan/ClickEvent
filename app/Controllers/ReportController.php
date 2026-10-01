@@ -46,12 +46,34 @@ final class ReportController {
   $events=self::events($db);
   if($event&&!in_array($event,array_map('intval',array_column($events,'id')),true))$event=0;
   $stock=self::stockRows($db,$event);
-  $peserta=$event?array_map([self::class,'attendanceJson'],self::hadirRows($db,$event)):[];
+  $peserta=$event?['items'=>self::pesertaItems($db,$event),'rows'=>self::pesertaRows($db,$event)]:['items'=>[],'rows'=>[]];
   require dirname(__DIR__,2).'/views/reports/souvenir.php';
  }
  // Peserta yang sudah hadir di satu event, beserta souvenir yang sudah diambil (untuk "Status Pengambilan Peserta").
  private static function hadirRows(\PDO $db,int $event):array{
   return array_values(array_filter(self::attendanceRows($db,$event),fn($r)=>$r['checkin_at']!==null));
+ }
+ // Kolom souvenir di tabel "Pengambilan Souvenir Peserta": souvenir yang dialokasikan ke event
+ // (atau sudah pernah diambil di event itu). Bertambah otomatis saat alokasi event bertambah.
+ private static function pesertaItems(\PDO $db,int $event):array{
+  $s=$db->prepare("SELECT s.id,s.code,s.name FROM souvenirs s WHERE s.id IN (SELECT souvenir_id FROM event_souvenirs WHERE event_id=? AND quantity_allocated>0) OR s.id IN (SELECT st.souvenir_id FROM souvenir_transactions st JOIN invitations i ON i.id=st.invitation_id WHERE i.event_id=?) ORDER BY s.code");
+  $s->execute([$event,$event]);
+  return array_map(fn($r)=>['id'=>(int)$r['id'],'code'=>$r['code'],'name'=>$r['name']],$s->fetchAll());
+ }
+ // Peserta hadir + rincian per souvenir: take[souvenir_id] = ['q'=>jumlah,'at'=>waktu ambil terakhir].
+ private static function pesertaRows(\PDO $db,int $event):array{
+  $take=[];
+  $s=$db->prepare("SELECT st.invitation_id,st.souvenir_id,SUM(st.quantity) q,MAX(st.collected_at) at FROM souvenir_transactions st JOIN invitations i ON i.id=st.invitation_id WHERE i.event_id=? GROUP BY st.invitation_id,st.souvenir_id");
+  $s->execute([$event]);
+  foreach($s as $t)$take[(int)$t['invitation_id']][(int)$t['souvenir_id']]=['q'=>(int)$t['q'],'at'=>$t['at']];
+  return array_map(fn($r)=>self::attendanceJson($r)+['take'=>$take[(int)$r['id']]??[]],self::hadirRows($db,$event));
+ }
+ // Status pengambilan terhadap souvenir yang ditampilkan: semua diambil / sebagian / belum sama sekali.
+ private static function takeStatus(array $take,array $items):array{
+  $n=count(array_filter($items,fn($it)=>isset($take[$it['id']])));$all=count($items);
+  if($n===0)return ['BELUM AMBIL','B76E1D'];
+  if($n>=$all)return ['SUDAH AMBIL','2E7D32'];
+  return ['SEBAGIAN ('.$n.'/'.$all.')','1D5FB7'];
  }
  // Monitoring stok per souvenir. Satu sumber untuk tabel di halaman & Excel.
  // Tanpa event: posisi gudang (stok fisik, dipesan event aktif, tersedia, total diambil).
@@ -73,8 +95,8 @@ final class ReportController {
     $stock=(int)$r['stock'];$dipesan=(int)$r['dipesan'];$tersedia=$stock-$dipesan;$diambil=(int)$r['diambil'];
     $kondisi=$stock<=0?'Habis':($tersedia<0?'Kurang':($stock<5||$tersedia<5?'Menipis':'Aman'));
     $det=$detail[(int)$r['id']]??[];
-    // Stok Awal = stok gudang sekarang + yang sudah dibagikan (alur: Stok Awal - Diambil = Stok Gudang - Dipesan = Tersedia)
-    return ['code'=>$r['code'],'name'=>$r['name'],'status'=>$r['status'],'stok_awal'=>$stock+$diambil,'diambil'=>$diambil,'stock'=>$stock,'dialokasikan'=>(int)$r['dialokasikan'],'dipesan'=>$dipesan,'tersedia'=>$tersedia,'kondisi'=>$kondisi,
+    // Alur: Stok Gudang - Dipesan Event = Tersedia
+    return ['code'=>$r['code'],'name'=>$r['name'],'status'=>$r['status'],'diambil'=>$diambil,'stock'=>$stock,'dialokasikan'=>(int)$r['dialokasikan'],'dipesan'=>$dipesan,'tersedia'=>$tersedia,'kondisi'=>$kondisi,
      'dipesan_detail'=>$det,'dipesan_text'=>implode('; ',array_map(fn($d)=>$d['event'].($d['status']==='DRAFT'?' (DRAFT)':'').': '.$d['qty'],$det))];
    },$rows);
   }
@@ -180,25 +202,30 @@ final class ReportController {
   Auth::requireLogin();$db=Database::connection();$event=(int)($_REQUEST['event_id']??0);
   $mode=(string)($_REQUEST['mode']??'taken');
   if($mode==='status'){
-   // Status pengambilan per peserta hadir. Baris = yang sedang tampil di halaman (ids).
-   $rows=self::pickRows(self::hadirRows($db,$event));
-   $st=(string)($_REQUEST['status']??'all');
-   $parts=['Peserta hadir'];if($st==='sudah')$parts[]='Status: Sudah Ambil';if($st==='belum')$parts[]='Status: Belum Ambil';
-   $headers=['No','NIK','Nama','Section','Departemen','Waktu Check-in','Souvenir Diambil','Waktu Ambil','Status Pengambilan'];
+   // Status pengambilan per peserta hadir. Baris = yang sedang tampil di halaman (ids); kolom souvenir = sama dengan tabel.
+   $rows=self::pickRows(self::pesertaRows($db,$event));
+   $items=self::pesertaItems($db,$event);$sid=(int)($_REQUEST['souvenir']??0);
+   if($sid)$items=array_values(array_filter($items,fn($it)=>$it['id']===$sid));
+   $parts=['Peserta hadir'];if($sid&&$items)$parts[]='Souvenir: '.$items[0]['name'];
+   $headers=['No','NIK','Nama','Section','Departemen','Waktu Check-in','Status Pengambilan'];
+   foreach($items as $it){$headers[]=$it['name'].' (Jumlah)';$headers[]=$it['name'].' (Waktu Ambil)';}
    [$ss,$sheet,$headerRow,$lastCol]=ExcelExport::newSheet('Status Pengambilan Souvenir',self::subtitle($db,$event,$parts,count($rows)),$headers);
    $r=$headerRow+1;
    foreach($rows as $i=>$row){
     $c=1;$sheet->setCellValue([$c++,$r],$i+1);
     foreach(['nik','name','section','department'] as $k)$sheet->setCellValueExplicit([$c++,$r],(string)$row[$k],DataType::TYPE_STRING);
     self::dateCell($sheet,$c++,$r,$row['checkin_at'],'dd-mm-yyyy hh:mm:ss');
-    $sheet->setCellValueExplicit([$c++,$r],(string)($row['souvenirs']?:'-'),DataType::TYPE_STRING);
-    if($row['souvenir_at'])self::dateCell($sheet,$c,$r,$row['souvenir_at'],'dd-mm-yyyy hh:mm:ss');else $sheet->setCellValue([$c,$r],'-');$c++;
-    $done=!empty($row['souvenirs']);
-    $sheet->setCellValue([$c,$r],$done?'SUDAH AMBIL':'BELUM AMBIL');$sheet->getStyle([$c,$r])->getFont()->setBold(true)->getColor()->setRGB($done?'2E7D32':'B76E1D');$c++;
+    [$lbl,$rgb]=self::takeStatus($row['take'],$items);
+    $sheet->setCellValue([$c,$r],$lbl);$sheet->getStyle([$c,$r])->getFont()->setBold(true)->getColor()->setRGB($rgb);$c++;
+    foreach($items as $it){
+     $t=$row['take'][$it['id']]??null;
+     $sheet->setCellValue([$c++,$r],$t?$t['q']:'-');
+     if($t)self::dateCell($sheet,$c,$r,$t['at'],'dd-mm-yyyy hh:mm:ss');else $sheet->setCellValue([$c,$r],'-');$c++;
+    }
     $r++;
    }
    ExcelExport::finishSheet($ss,$sheet,$lastCol,$r-1,$headerRow);
-   ExcelExport::outputXlsx($ss,self::fileName('status_pengambilan_souvenir',['event-'.$event,$st!=='all'?($st==='sudah'?'sudah-ambil':'belum-ambil'):'']));
+   ExcelExport::outputXlsx($ss,self::fileName('status_pengambilan_souvenir',['event-'.$event,$sid&&$items?$items[0]['code']:'']));
    return;
   }
   if($mode==='stock'){
@@ -207,8 +234,8 @@ final class ReportController {
     $headers=['No','Kode','Souvenir','Total Alokasi','Telah Diserahkan','Belum Diserahkan','Realisasi Penyaluran (%)','Stok Gudang','Kondisi'];
     $keys=['code','name','alokasi','diambil','sisa','persen','stock','kondisi'];
    }else{
-    $headers=['No','Kode','Souvenir','Stok Awal','Sudah Diambil','Stok Gudang','Dipesan Event','Tersedia','Kondisi','Rincian Dipesan'];
-    $keys=['code','name','stok_awal','diambil','stock','dipesan','tersedia','kondisi','dipesan_text'];
+    $headers=['No','Kode','Souvenir','Stok Gudang','Sudah Diambil','Dipesan Event','Tersedia','Kondisi','Rincian Dipesan'];
+    $keys=['code','name','stock','diambil','dipesan','tersedia','kondisi','dipesan_text'];
    }
    [$ss,$sheet,$headerRow,$lastCol]=ExcelExport::newSheet('Monitoring Stok Souvenir',self::subtitle($db,$event,$event?[]:['Posisi stok gudang'],count($rows)),$headers);
    $r=$headerRow+1;

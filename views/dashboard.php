@@ -59,6 +59,8 @@ $welcomeName=flash('welcome');
 .stat-card .trend.c-neutral{color:#9aa19c;}
 .recent-card{border:1px solid #e7e9e6;border-radius:12px;overflow:hidden;animation:statCardIn .45s cubic-bezier(.22,.61,.36,1) .3s both;}
 .recent-card .card-header{background:#fff;font-weight:700;font-size:14px;padding:16px 20px;border-bottom:1px solid #e7e9e6;display:flex;align-items:center;justify-content:space-between;}
+.recent-card .dash-pg{padding:12px 20px;border-top:1px solid #eef0ef;}
+.recent-card .dash-pg:empty{display:none;}
 .recent-card .rc-icon{width:28px;height:28px;border-radius:8px;background:var(--accent-soft);color:var(--accent);display:inline-flex;align-items:center;justify-content:center;font-size:14px;}
 .recent-card .rc-link{font-size:12.5px;font-weight:600;color:var(--accent);text-decoration:none;display:inline-flex;align-items:center;gap:4px;}
 .recent-card .rc-link:hover{text-decoration:underline;}
@@ -105,15 +107,15 @@ setTimeout(dismissWelcomeToast,4000);
 <div class="row g-3 mb-4" data-live="stats"><?php foreach($cards as $idx=>$c):$trend=$c['trend']??null;?><div class="col-6 col-md"><div class="card stat-card p-3 h-100" style="animation-delay:<?=($idx*0.07)?>s;--blob:<?=$cardBlobs[$c['key']]??'#4a7fa8'?>;" data-bs-toggle="modal" data-bs-target="#cardInfoModal" onclick="showCardInfo('<?=e($idx)?>')"><div class="icon-badge <?=$cardColors[$c['key']]??'c-blue'?>"><i class="bi <?=$cardIcons[$c['key']]??'bi-graph-up'?>"></i></div><div class="lbl"><?=e($c['label'])?></div><h2><?=e((string)$c['value'])?><?php if(!empty($c['suffix'])):?><span class="fs-6 text-muted"><?=e($c['suffix'])?></span><?php endif;?></h2><?php if($trend):?><div class="trend c-<?=e($trend['color'])?>"><i class="bi <?=$trendIcons[$trend['icon']]??'bi-dash'?>"></i><span><?=e($trend['text'])?></span></div><?php endif;?></div></div><?php endforeach;?></div>
 <div class="card recent-card mb-4" data-live="recent-events">
 <div class="card-header"><span class="d-flex align-items-center gap-2"><span class="rc-icon"><i class="bi bi-calendar-event"></i></span>Event Terbaru</span><a href="<?=BASE_URL?>/events" class="rc-link">Lihat Semua <i class="bi bi-arrow-right"></i></a></div>
-<div class="table-responsive"><table class="table mb-0"><tr><th>Event</th><th>Tanggal</th><th>Status</th><th>Diundang</th><th>Sudah Hadir</th><th></th></tr><?php $evtStatusColor=['DRAFT'=>'#6b7570','PUBLISHED'=>'#1f7a4c','CLOSED'=>'#1c2a26','CANCELLED'=>'#c0392b'];$evtStatusBg=['DRAFT'=>'#f1f3f1','PUBLISHED'=>'#eaf6ee','CLOSED'=>'#eceff1','CANCELLED'=>'#fdeceb'];foreach($events as $e):$sc=$evtStatusColor[$e['status']]??'#6b7570';$sb=$evtStatusBg[$e['status']]??'#f1f3f1';?><tr>
+<div class="table-responsive"><table class="table mb-0"><tr><th>Event</th><th>Tanggal</th><th>Status</th><th>Diundang</th><th>Sudah Hadir</th><th></th></tr><?php $evtStatusColor=['DRAFT'=>'#6b7570','PUBLISHED'=>'#1f7a4c','CLOSED'=>'#1c2a26','CANCELLED'=>'#c0392b'];$evtStatusBg=['DRAFT'=>'#f1f3f1','PUBLISHED'=>'#eaf6ee','CLOSED'=>'#eceff1','CANCELLED'=>'#fdeceb'];foreach($events as $e):$sc=$evtStatusColor[$e['status']]??'#6b7570';$sb=$evtStatusBg[$e['status']]??'#f1f3f1';?><tr class="pg-row">
 <td><div class="d-flex align-items-center gap-2"><span class="row-icon"><i class="bi bi-calendar-event"></i></span><div><div class="fw-semibold" style="color:#101c26;"><?=e($e['event_name'])?></div><?php if(!empty($e['location'])):?><div class="text-muted" style="font-size:11.5px;"><?=e($e['location'])?></div><?php endif;?></div></div></td>
 <td><?=dmy($e['event_date'])?></td>
 <td><span class="dot-badge" style="background:<?=$sb?>;color:<?=$sc?>;"><span class="dot" style="background:<?=$sc?>"></span><?=e($e['status'])?></span></td>
 <td><i class="bi bi-person text-muted"></i> <?=$e['invited']?></td>
 <td><i class="bi bi-person-check text-muted"></i> <?=$e['checked_in']?></td>
 <td class="text-end"><div class="dropdown"><button type="button" class="btn-row-menu" data-bs-toggle="dropdown"><i class="bi bi-three-dots-vertical"></i></button><ul class="dropdown-menu dropdown-menu-end"><li><a class="dropdown-item" href="<?=BASE_URL?>/events/<?=$e['id']?>/invitations"><i class="bi bi-people me-2"></i>Peserta</a></li><li><a class="dropdown-item" href="<?=BASE_URL?>/events/<?=$e['id']?>/edit"><i class="bi bi-pencil me-2"></i>Edit</a></li><li><a class="dropdown-item" href="<?=BASE_URL?>/events/<?=$e['id']?>/souvenirs"><i class="bi bi-gift me-2"></i>Souvenir</a></li></ul></div></td>
-</tr><?php endforeach;?></table></div></div>
-<div class="card recent-card" data-live="recent-claims"><div class="card-header">Souvenir Terambil</div><div class="table-responsive"><table class="table mb-0"><tr><th>Waktu</th><th>Karyawan</th><th>Event</th><th>Souvenir</th><th>Qty</th></tr><?php if(empty($recentClaims)):?><tr><td colspan="5" class="text-muted text-center py-3">Belum ada souvenir yang diambil.</td></tr><?php else: foreach($recentClaims as $c):$dtParts=explode(' ',dmy($c['collected_at']),2);?><tr><td><div class="dt-cell"><span class="dt-date"><?=e($dtParts[0]??'')?></span><?php if(!empty($dtParts[1])):?><span class="dt-time"><?=e($dtParts[1])?></span><?php endif;?></div></td><td><?=e($c['name'])?> <span class="text-muted small">(<?=e($c['nik'])?>)</span></td><td><?=e($c['event_name'])?></td><td><?=e($c['souvenir_name'])?></td><td><?=(int)$c['quantity']?></td></tr><?php endforeach;endif;?></table></div></div>
+</tr><?php endforeach;?></table></div><div class="dash-pg"></div></div>
+<div class="card recent-card" data-live="recent-claims"><div class="card-header">Souvenir Terambil</div><div class="table-responsive"><table class="table mb-0"><tr><th>Waktu</th><th>Karyawan</th><th>Event</th><th>Souvenir</th><th>Qty</th></tr><?php if(empty($recentClaims)):?><tr><td colspan="5" class="text-muted text-center py-3">Belum ada souvenir yang diambil.</td></tr><?php else: foreach($recentClaims as $c):$dtParts=explode(' ',dmy($c['collected_at']),2);?><tr class="pg-row"><td><div class="dt-cell"><span class="dt-date"><?=e($dtParts[0]??'')?></span><?php if(!empty($dtParts[1])):?><span class="dt-time"><?=e($dtParts[1])?></span><?php endif;?></div></td><td><?=e($c['name'])?> <span class="text-muted small">(<?=e($c['nik'])?>)</span></td><td><?=e($c['event_name'])?></td><td><?=e($c['souvenir_name'])?></td><td><?=(int)$c['quantity']?></td></tr><?php endforeach;endif;?></table></div><div class="dash-pg"></div></div>
 <script type="application/json" id="cardInfoJson" data-live="cardinfo"><?=json_encode(array_map(fn($c)=>['key'=>$c['key'],'label'=>$c['label'],'items'=>$c['items']??[]],$cards),JSON_HEX_TAG|JSON_HEX_AMP)?></script>
 <div class="modal fade" id="cardInfoModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered modal-lg"><div class="modal-content">
 <div class="modal-header"><div class="head-icon" id="cardInfoIcon"><i class="bi bi-graph-up"></i></div><div class="flex-grow-1"><h5 class="modal-title mb-0" id="cardInfoLabel"></h5><span id="cardInfoCount"></span></div><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
@@ -123,7 +125,18 @@ setTimeout(dismissWelcomeToast,4000);
 <script>
 const CARD_ICONS=<?=json_encode($cardIcons)?>;
 function cardInfo(){return JSON.parse(document.getElementById('cardInfoJson').textContent);}
-Live.on(['att','souv','inv','evt','emp','stock','alloc'],()=>Live.swap(['stats','recent-events','recent-claims','cardinfo']));
+// Tabel Event Terbaru & Souvenir Terambil: 5 baris per halaman (halaman aktif tetap saat data diperbarui real-time).
+const DASH_PAGE=5,dashPg={};
+function dashPaginate(){
+ document.querySelectorAll('[data-live="recent-events"],[data-live="recent-claims"]').forEach(card=>{
+  const key=card.dataset.live,rows=[...card.querySelectorAll('tr.pg-row')],box=card.querySelector('.dash-pg');if(!box)return;
+  const pages=Math.max(1,Math.ceil(rows.length/DASH_PAGE));let pg=Math.min(dashPg[key]||1,pages);dashPg[key]=pg;
+  rows.forEach((tr,i)=>{tr.style.display=(i>=(pg-1)*DASH_PAGE&&i<pg*DASH_PAGE)?'':'none';});
+  drawPager(box,pg,pages,p=>{dashPg[key]=p;dashPaginate();},rows.length,DASH_PAGE);
+ });
+}
+dashPaginate();
+Live.on(['att','souv','inv','evt','emp','stock','alloc'],async()=>{await Live.swap(['stats','recent-events','recent-claims','cardinfo']);dashPaginate();});
 const BADGE_COLORS={success:'#1f7a4c',warning:'#c9950a',danger:'#c0392b',secondary:'#6b7570'};
 function esc(s){return (s??'').toString().replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function showCardInfo(idx){

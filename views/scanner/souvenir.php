@@ -26,6 +26,18 @@
 .scan-setup .ss-souv select{padding-left:42px!important;font-size:16px!important;font-weight:700;color:var(--forest)!important;border:2px solid var(--lime)!important;background:#f7fcf3!important;box-shadow:0 0 0 4px rgba(144,227,101,.16);min-height:50px;}
 .scan-setup .ss-main .static-field{min-height:50px;font-size:16px;font-weight:700;color:var(--forest);border:2px solid var(--lime);background:#f7fcf3;box-shadow:0 0 0 4px rgba(144,227,101,.16);}
 .scan-setup .ss-main .static-field i{color:var(--accent);font-size:17px;}
+.scan-setup .ss-ev .static-field,.scan-setup .ss-ev select{min-height:50px;font-size:16px!important;font-weight:700;color:var(--forest)!important;border-width:2px!important;}
+.scan-setup .ss-ev .static-field i{font-size:17px;}
+.claim-chips{display:flex;flex-wrap:wrap;gap:8px;}
+#claimedList td:not(:last-child),#claimedList~* th,.claim-table th{white-space:nowrap;}
+.claim-chip{display:inline-flex;align-items:center;gap:8px;padding:7px 14px;border-radius:22px;background:#eef8e6;border:1px solid #d6efc7;color:var(--forest);font-size:14.5px;font-weight:700;white-space:nowrap;}
+.claim-chip i{color:#2f9a3a;font-size:15px;}
+.claim-chip.pending{background:#f6f7f6;border:1.5px dashed #cfd6d2;color:#8a948f;font-weight:600;}
+.claim-chip.pending i{color:#b8c0bb;}
+.claim-chip.pending small{color:#a3aba6;font-style:italic;}
+.claim-sum{align-self:center;font-size:12px;font-weight:800;color:#b77a3a;background:#fbf1e7;border-radius:12px;padding:3px 9px;}
+.claim-sum.full{color:#2f7d1f;background:#eef8e6;}
+.claim-chip small{font-weight:600;color:#5f6d66;font-size:13px;}
 .scan-setup .ss-stock{border:1px solid #e3ebe9;border-radius:12px;padding:10px 14px;background:#fbfcfc;}
 .scan-setup .ss-stock .ss-label{margin-bottom:2px;}
 .scan-setup .ss-num{font-size:24px;font-weight:800;color:var(--forest);line-height:1.2;}
@@ -38,7 +50,7 @@
 <div class="scan-setup">
  <div class="ss-head"><i class="bi bi-sliders2"></i>Pengaturan Scan<span class="ss-hint"><i class="bi bi-info-circle me-1"></i>Pastikan souvenir sudah benar sebelum mulai scan.</span></div>
  <div class="ss-grid">
-  <div class="ss-field"><div class="ss-label"><span class="ss-no">1</span>Event</div><div class="select-wrap"><select id="eventId" class="form-select" data-auto-static data-icon="bi-calendar-event"><?php foreach($events as $e):?><option value="<?=$e['id']?>"><?=e($e['event_name'])?></option><?php endforeach;?></select><i class="bi bi-chevron-down select-arrow"></i></div></div>
+  <div class="ss-field ss-ev"><div class="ss-label"><span class="ss-no">1</span>Event</div><div class="select-wrap"><select id="eventId" class="form-select" data-auto-static data-icon="bi-calendar-event"><?php foreach($events as $e):?><option value="<?=$e['id']?>"><?=e($e['event_name'])?></option><?php endforeach;?></select><i class="bi bi-chevron-down select-arrow"></i></div></div>
   <div class="ss-field ss-main"><div class="ss-label"><span class="ss-no">2</span>Souvenir yang Dibagikan</div><div class="select-wrap ss-souv"><i class="bi bi-gift-fill ss-ico"></i><select id="souvenirId" class="form-select" data-auto-static data-icon="bi-gift-fill"></select><i class="bi bi-chevron-down select-arrow"></i></div><div id="noAllocWarn" class="form-text text-danger d-none mt-1">Belum ada souvenir yang dialokasikan untuk event ini.</div></div>
   <div class="ss-stock" id="ssStock"><div class="ss-label">Belum Diserahkan</div><div class="ss-num"><span id="ssLeft">0</span><small>dari <span id="ssTotal">0</span></small></div><div class="ss-bar"><i id="ssBar"></i></div></div>
  </div>
@@ -50,8 +62,8 @@
 <details class="mt-3"><summary class="text-muted" style="cursor:pointer">Gunakan kamera / upload gambar</summary><div id="camwarn" class="cam-note d-none"></div><div id="reader" class="mt-2" style="max-width:520px"></div></details>
 </div>
 <div class="soft-card">
-<h6 class="mb-3 d-flex align-items-center gap-2">Sudah Diambil <span class="count-pill" id="claimedCount">0</span><span class="text-muted small fw-normal ms-1">15 terbaru</span></h6>
-<div class="table-responsive"><table class="data-table"><thead><tr><th>Waktu</th><th>NIK</th><th>Nama</th><th>Departemen</th><th>Souvenir</th></tr></thead><tbody id="claimedList"><tr><td colspan="5" class="text-muted">Memuat...</td></tr></tbody></table></div>
+<h6 class="mb-3 d-flex align-items-center gap-2">Sudah Diambil <span class="count-pill" id="claimedCount">0</span><span class="text-muted small fw-normal ms-1">peserta · 15 terbaru</span></h6>
+<div class="table-responsive"><table class="data-table claim-table"><thead><tr><th>Terakhir Ambil</th><th>NIK</th><th>Nama</th><th>Departemen</th><th>Souvenir Diambil</th></tr></thead><tbody id="claimedList"><tr><td colspan="5" class="text-muted">Memuat...</td></tr></tbody></table></div>
 </div>
 <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script><script>
 const ALL_SOUVENIRS=<?=json_encode(array_map(fn($s)=>['id'=>$s['id'],'name'=>$s['name'],'stock'=>$s['stock']],$souvenirs))?>;
@@ -94,9 +106,26 @@ async function refreshClaimed(){
  try{
   const r=await fetch(BASE+'/reports/souvenir/data?event_id='+eventId.value);
   const data=await r.json();
-  document.getElementById('claimedCount').textContent=data.length;
-  const recent=data.slice().sort((a,b)=>(b.collected_at||'').localeCompare(a.collected_at||'')).slice(0,CLAIMED_RECENT_LIMIT);
-  document.getElementById('claimedList').innerHTML=recent.length?recent.map(x=>'<tr><td>'+dtCell(x.collected_at)+'</td><td>'+esc(x.nik)+'</td><td>'+esc(x.name)+'</td><td>'+esc(x.department)+'</td><td>'+esc(x.souvenir_name)+'</td></tr>').join(''):'<tr><td colspan="5" class="text-muted">Belum ada yang mengambil souvenir.</td></tr>';
+  // Satu baris per peserta; souvenir yang diambil berjajar ke samping beserta jam ambilnya.
+  const byPerson={};
+  data.forEach(x=>{const p=byPerson[x.nik]=byPerson[x.nik]||{nik:x.nik,name:x.name,department:x.department,last:'',items:[]};p.items.push(x);if((x.collected_at||'')>p.last)p.last=x.collected_at;});
+  const people=Object.values(byPerson).sort((a,b)=>b.last.localeCompare(a.last));
+  document.getElementById('claimedCount').textContent=people.length;
+  const recent=people.slice(0,CLAIMED_RECENT_LIMIT);
+  // Semua souvenir yang dialokasikan ke event ditampilkan: sudah diambil = centang hijau + jam, belum = abu-abu.
+  const allocIds=Object.keys(ALLOC[eventId.value]||{}).map(Number);
+  const allocList=ALL_SOUVENIRS.filter(s=>allocIds.includes(Number(s.id)));
+  const chips=p=>{
+   const taken={};p.items.forEach(x=>{taken[x.souvenir_id]=x;});
+   const done=allocList.filter(s=>taken[s.id]).length;
+   const list=allocList.map(s=>({t:taken[s.id]||null,name:s.name}))
+    .concat(p.items.filter(x=>!allocIds.includes(Number(x.souvenir_id))).map(x=>({t:x,name:x.souvenir_name})));
+   return list.map(c=>c.t
+    ?'<span class="claim-chip"><i class="bi bi-check-circle-fill"></i>'+esc(c.name)+((c.t.quantity||1)>1?' ×'+c.t.quantity:'')+'<small>'+esc((c.t.collected_at||'').slice(11,19))+'</small></span>'
+    :'<span class="claim-chip pending"><i class="bi bi-circle"></i>'+esc(c.name)+'<small>Belum</small></span>').join('')
+    +(allocList.length>1?'<span class="claim-sum'+(done>=allocList.length?' full':'')+'">'+done+'/'+allocList.length+'</span>':'');
+  };
+  document.getElementById('claimedList').innerHTML=recent.length?recent.map(p=>'<tr><td>'+dtCell(p.last)+'</td><td>'+esc(p.nik)+'</td><td>'+esc(p.name)+'</td><td>'+esc(p.department)+'</td><td><div class="claim-chips">'+chips(p)+'</div></td></tr>').join(''):'<tr><td colspan="5" class="text-muted">Belum ada yang mengambil souvenir.</td></tr>';
   const claimedBySouvenir={};
   data.forEach(x=>{claimedBySouvenir[x.souvenir_id]=(claimedBySouvenir[x.souvenir_id]||0)+(x.quantity||1);});
   const alloc=ALLOC[eventId.value];

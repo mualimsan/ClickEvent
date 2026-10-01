@@ -55,14 +55,7 @@ $statusLabel=['SENT'=>'SENT','PENDING'=>'BELUM DIKIRIM','FAILED'=>'FAILED'];
 <div class="modal fade" id="qrModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content" style="border:0;border-radius:16px;overflow:hidden;"><div class="modal-header" style="border-bottom:1px solid #eef1ee;"><h5 class="modal-title" id="qrname" style="font-weight:700;"></h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body text-center py-4"><img id="qrimg" src="" style="max-width:320px"></div></div></div></div>
 <script>
 const PAGE_SIZE=15;
-function renderPagination(container,totalPages,page,onGo){
- container.innerHTML='';
- if(totalPages<=1)return;
- const mk=(label,p,disabled,active)=>{const b=document.createElement('button');b.type='button';b.className=active?'btn-brand':'btn-outline-brand';b.style.padding='6px 12px';b.style.fontSize='12.5px';b.textContent=label;b.disabled=disabled;if(disabled)b.style.opacity='.5';b.onclick=()=>onGo(p);return b;};
- container.appendChild(mk('«',page-1,page<=1,false));
- container.appendChild(Object.assign(document.createElement('span'),{className:'small text-muted mx-1',textContent:'Halaman '+page+' / '+totalPages}));
- container.appendChild(mk('»',page+1,page>=totalPages,false));
-}
+function renderPagination(container,totalPages,page,onGo,total){drawPager(container,page,totalPages,onGo,total,PAGE_SIZE);}
 
 const deptFilter=document.getElementById('deptFilter');
 const searchFilter=document.getElementById('searchFilter');
@@ -79,7 +72,7 @@ function renderGuestPage(){
  const start=(guestPage-1)*PAGE_SIZE;
  const shown=new Set(matched.slice(start,start+PAGE_SIZE));
  guestRows.forEach(tr=>{tr.style.display=shown.has(tr)?'':'none';});
- renderPagination(document.getElementById('guestPagination'),totalPages,guestPage,p=>{guestPage=p;renderGuestPage();});
+ renderPagination(document.getElementById('guestPagination'),totalPages,guestPage,p=>{guestPage=p;renderGuestPage();},matched.length);
 }
 function applyFilters(){guestPage=1;renderGuestPage();}
 function selectAllVisible(){guestMatches().forEach(tr=>{const cb=tr.querySelector('.emp');if(cb)cb.checked=true;});updateCount();}
@@ -110,7 +103,7 @@ function renderInvPage(){
  const start=(invPage-1)*PAGE_SIZE;
  const shown=new Set(matched.slice(start,start+PAGE_SIZE));
  invRows.forEach(tr=>{tr.style.display=shown.has(tr)?'':'none';});
- renderPagination(document.getElementById('invPagination'),totalPages,invPage,p=>{invPage=p;renderInvPage();});
+ renderPagination(document.getElementById('invPagination'),totalPages,invPage,p=>{invPage=p;renderInvPage();},matched.length);
 }
 function countSendable(){return invMatches().filter(tr=>tr.querySelector('td img')&&tr.children[tr.children.length-1].textContent.trim()!=='SENT').length;}
 function countPending(){return invMatches().filter(tr=>!tr.querySelector('td img')).length;}

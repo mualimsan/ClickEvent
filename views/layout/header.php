@@ -232,6 +232,17 @@ body{background:#f4f7f7;font-family:var(--font-main);color:var(--ink);letter-spa
 @keyframes srRing{0%{box-shadow:0 0 0 0 var(--ring)}100%{box-shadow:0 0 0 12px transparent}}
 @keyframes srShake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-6px)}40%,80%{transform:translateX(6px)}}
 @media (max-width:576px){.scan-res{gap:10px;padding:10px 12px}.scan-res .sr-ico{width:34px;height:34px;font-size:17px}.scan-res .sr-name{font-size:16px}.scan-res .sr-time{position:static;display:block;margin-top:6px}}
+.pager{display:flex!important;align-items:center;justify-content:space-between;gap:10px 16px;flex-wrap:wrap;}
+.pager .pg-info{font-size:12.5px;color:#6b7570;}
+.pager .pg-info b{color:var(--forest);font-weight:700;}
+.pager .pg-nav{display:flex;align-items:center;gap:6px;margin-left:auto;}
+.pg-btn{min-width:34px;height:34px;padding:0 10px;border:1.5px solid #dfe5e2;border-radius:9px;background:#fff;color:var(--forest);font-size:13px;font-weight:600;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;transition:background .15s,border-color .15s,box-shadow .15s;}
+.pg-btn:hover:not(:disabled):not(.on){border-color:var(--lime);background:#f4fbef;}
+.pg-btn.on{background:var(--forest);border-color:var(--forest);color:var(--lime-bright);box-shadow:0 4px 12px -4px rgba(2,45,54,.45);cursor:default;}
+.pg-btn:disabled{opacity:.4;cursor:not-allowed;}
+.pg-btn i{font-size:12px;}
+.pg-gap{color:#9aa19c;padding:0 2px;font-weight:600;}
+@media(max-width:576px){.pager{justify-content:center;}.pager .pg-nav{margin-left:0;}.pager .pg-info{width:100%;text-align:center;}}
 .alert-soft-danger{background:#fdeceb;border:1px solid #f3c6c2;color:#a3372b;border-radius:10px;padding:12px 16px;font-size:13.5px;}
 .toast-stack{position:fixed;top:18px;right:18px;z-index:1095;display:flex;flex-direction:column;gap:10px;width:min(420px,calc(100vw - 32px));pointer-events:none;}
 .toast-stack:empty{display:none;}
@@ -287,6 +298,18 @@ body{background:#f4f7f7;font-family:var(--font-main);color:var(--ink);letter-spa
 <nav><?php foreach($navGroups as $groupLabel=>$items):?><div class="nav-label"><?=e($groupLabel)?></div><?php foreach($items as [$href,$label,$icon,$color]):$isActive=$uri===$href||str_starts_with($uri,$href.'/');?><a href="<?=BASE_URL.$href?>" class="<?=$isActive?'active':''?> nav-<?=$color?>" title="<?=e($label)?>"><i class="bi <?=$icon?>"></i><span><?=$label?></span></a><?php endforeach;endforeach;?></nav>
 </aside><div class="sb-backdrop" id="sbBackdrop" onclick="toggleSidebar(false)"></div>
 <script>
+// Pagination seragam untuk semua tabel: info jumlah data di kiri, tombol halaman di kanan.
+function drawPager(box,page,pages,onGo,total,size){
+ if(!box)return;box.innerHTML='';box.classList.toggle('pager',pages>1);if(pages<=1)return;
+ const btn=(html,p,o)=>{o=o||{};const b=document.createElement('button');b.type='button';b.className='pg-btn'+(o.on?' on':'');b.innerHTML=html;b.disabled=!!o.dis;if(o.label)b.setAttribute('aria-label',o.label);if(o.on)b.setAttribute('aria-current','page');else b.onclick=()=>onGo(p);return b;};
+ if(total!=null){const a=(page-1)*size+1,z=Math.min(page*size,total),info=document.createElement('div');info.className='pg-info';info.innerHTML='Menampilkan <b>'+a+'–'+z+'</b> dari <b>'+total+'</b> data';box.append(info);}
+ const nav=document.createElement('div');nav.className='pg-nav';
+ nav.append(btn('<i class="bi bi-chevron-left"></i>',page-1,{dis:page<=1,label:'Halaman sebelumnya'}));
+ const nums=[];for(let p=1;p<=pages;p++){if(p===1||p===pages||Math.abs(p-page)<=1)nums.push(p);else if(nums[nums.length-1]!=='…')nums.push('…');}
+ nums.forEach(p=>nav.append(p==='…'?Object.assign(document.createElement('span'),{className:'pg-gap',textContent:'…'}):btn(String(p),p,{on:p===page,label:'Halaman '+p})));
+ nav.append(btn('<i class="bi bi-chevron-right"></i>',page+1,{dis:page>=pages,label:'Halaman berikutnya'}));
+ box.append(nav);
+}
 // Desktop: sidebar bisa diciutkan (diingat). HP/tablet (<=768px): sidebar jadi menu laci yang muncul dari kiri.
 const __sbMobile=()=>window.matchMedia('(max-width:768px)').matches;
 try{if(localStorage.getItem('sidebarCollapsed')==='1')document.getElementById('mainSidebar').classList.add('collapsed');}catch(e){}

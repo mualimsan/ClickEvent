@@ -27,14 +27,7 @@ const STATUS_LABEL={hadir:'Hadir',belum:'Belum Hadir'};
 function esc(s){return (s??'').toString().replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function dmy(s){if(!s)return '';const [d,t]=s.split(' ');const [y,m,dd]=d.split('-');if(!y||!m||!dd)return s;return dd+'-'+m+'-'+y+(t?' '+t:'');}
 function dtCell(s){if(!s)return '';const [d,t]=dmy(s).split(' ');return '<div class="dt-cell"><span class="dt-date">'+esc(d)+'</span>'+(t?'<span class="dt-time">'+esc(t)+'</span>':'')+'</div>';}
-function renderPagination(container,totalPages,page,onGo){
- container.innerHTML='';
- if(totalPages<=1)return;
- const mk=(label,p,disabled)=>{const b=document.createElement('button');b.type='button';b.className='btn-outline-brand';b.style.padding='6px 12px';b.style.fontSize='12.5px';b.textContent=label;b.disabled=disabled;if(disabled)b.style.opacity='.4';b.onclick=()=>onGo(p);return b;};
- container.appendChild(mk('«',page-1,page<=1));
- container.appendChild(Object.assign(document.createElement('span'),{className:'small text-muted mx-1',textContent:'Halaman '+page+' / '+totalPages}));
- container.appendChild(mk('»',page+1,page>=totalPages));
-}
+function renderPagination(container,totalPages,page,onGo,total){drawPager(container,page,totalPages,onGo,total,PAGE_SIZE);}
 function query(){return (document.getElementById('searchQ').value||'').trim();}
 function matchesQuery(x,q){
  if(!q)return true;
@@ -64,7 +57,7 @@ function renderAttPage(){
  const start=(attPage-1)*PAGE_SIZE;
  const pageRows=shown.slice(start,start+PAGE_SIZE);
  document.getElementById('rows').innerHTML=pageRows.length?pageRows.map((x,i)=>'<tr><td>'+(start+i+1)+'</td><td>'+esc(x.nik)+'</td><td class="fw-semibold">'+esc(x.name)+'</td><td>'+esc(x.section)+'</td><td>'+esc(x.department)+'</td><td>'+esc(x.email_status==='PENDING'?'BELUM DIKIRIM':x.email_status)+'</td><td>'+(x.attended?'<span class="badge-pill" style="background:#1f7a4c">HADIR</span>':'<span class="badge-pill" style="background:#6b7570">BELUM HADIR</span>')+'</td><td>'+dtCell(x.checkin_at)+'</td><td>'+(x.souvenirs?'<span class="souv-taken"><i class="bi bi-gift"></i>'+esc(x.souvenirs)+'</span>':'<span class="text-muted">-</span>')+'</td></tr>').join(''):'<tr><td colspan="9" class="text-muted text-center py-4">Tidak ada data yang cocok dengan filter.</td></tr>';
- renderPagination(document.getElementById('attPagination'),totalPages,attPage,p=>{attPage=p;renderAttPage();});
+ renderPagination(document.getElementById('attPagination'),totalPages,attPage,p=>{attPage=p;renderAttPage();},shown.length);
  renderSummary();
 }
 function setStatus(st){
