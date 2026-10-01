@@ -12,18 +12,6 @@
 .section-title{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:0 0 12px;}
 .section-title h3{font-size:15px;font-weight:700;margin:0;display:flex;align-items:center;gap:8px;}
 .section-title h3 i{color:var(--accent);}
-.legend-panel{margin-top:14px;border:1px solid #e7ece9;border-radius:12px;background:#fafcfb;padding:14px 16px;display:grid;gap:14px;}
-.legend-panel .lg-title{display:flex;align-items:center;gap:7px;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#6b7570;margin-bottom:9px;}
-.legend-panel .lg-title i{color:var(--accent);font-size:13px;}
-.legend-panel .lg-group+.lg-group{border-top:1px dashed #e1e7e4;padding-top:14px;}
-.legend-panel .lg-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px 18px;}
-@media(max-width:1100px){.legend-panel .lg-grid{grid-template-columns:repeat(2,minmax(0,1fr));}}
-@media(max-width:576px){.legend-panel .lg-grid{grid-template-columns:1fr;}}
-.legend-panel .lg-item{display:flex;align-items:flex-start;gap:10px;}
-.legend-panel .lg-item .kond{flex:none;min-width:86px;justify-content:center;}
-.legend-panel .lg-desc{font-size:12.5px;color:#5f6b66;line-height:1.5;}
-.legend-panel .lg-desc b{display:block;color:var(--forest);font-size:13px;margin-bottom:1px;}
-.legend-panel .lg-ico{flex:none;width:28px;height:28px;border-radius:8px;background:#eef8e6;color:var(--accent);display:inline-flex;align-items:center;justify-content:center;font-size:14px;}
 .legend{font-size:12px;color:#7c8b86;display:flex;gap:14px;flex-wrap:wrap;margin-top:10px;}
 .legend b{color:#3d453f;}
 .pesan-toggle{display:inline-flex;align-items:center;gap:4px;margin-top:4px;border:1px solid #dfe6e3;background:#f6f8f7;color:#4b5563;font-size:11px;font-weight:600;border-radius:20px;padding:2px 9px;cursor:pointer;white-space:nowrap;transition:background .15s,border-color .15s;}
@@ -46,6 +34,7 @@
 .ps-table thead tr.ps-sub th{font-size:10.5px;padding-top:6px;padding-bottom:8px;color:#7a857f;}
 .ps-table th.ps-grp{text-align:center;color:var(--forest);border-left:1px solid #e3e9e6;border-bottom:1px solid #e3e9e6;padding-bottom:6px;}
 .ps-table th.ps-grp i{color:var(--accent);margin-right:5px;}
+.ps-table .ps-total{display:inline-block;margin-left:6px;min-width:24px;padding:1px 8px;border-radius:12px;background:var(--forest);color:var(--lime-bright);font-size:11.5px;font-weight:800;letter-spacing:0;vertical-align:1px;}
 .ps-table .g-start{border-left:1px solid #eef1ef;}
 .ps-table td.ps-q{text-align:center;font-weight:700;color:var(--forest);}
 .ps-table th.ps-q{text-align:center;}
@@ -83,29 +72,6 @@
   <?php endforeach;?>
  <?php endif;?>
  </tbody></table></div></div>
- <?php
- // Keterangan di bawah tabel: arti status Kondisi + arti istilah kolom.
- $kondDesc=$event
-  ?['Aman'=>'Stok gudang mencukupi sisa jatah event ini.','Menipis'=>'Sisa jatah ≤ 5 unit atau ≤ 10% dari total alokasi.','Habis'=>'Seluruh jatah event ini sudah diserahkan.','Kurang'=>'Stok gudang lebih sedikit dari sisa jatah yang belum diserahkan.']
-  :['Aman'=>'Stok gudang dan stok tersedia masih mencukupi.','Menipis'=>'Stok gudang atau stok tersedia kurang dari 5 unit.','Habis'=>'Stok gudang sudah 0.','Kurang'=>'Stok gudang tidak cukup untuk memenuhi semua jatah event.'];
- $terms=$event
-  ?[['bi-clipboard-check','Total Alokasi','Jatah souvenir yang disiapkan untuk event ini.'],['bi-bag-check','Telah Diserahkan','Jumlah souvenir yang sudah di-scan dan diterima peserta.'],['bi-hourglass-split','Belum Diserahkan','Total Alokasi dikurangi Telah Diserahkan.'],['bi-graph-up','Realisasi','Telah Diserahkan dibagi Total Alokasi, dalam persen.']]
-  :[['bi-building','Stok Gudang','Sisa fisik di gudang, berkurang otomatis setiap souvenir diserahkan.'],['bi-bag-check','Sudah Diambil','Total souvenir yang sudah diserahkan ke peserta di semua event.'],['bi-bookmark-check','Dipesan Event','Jatah event DRAFT/PUBLISHED yang belum diambil peserta.'],['bi-check2-circle','Tersedia','Stok Gudang dikurangi Dipesan Event; bisa dialokasikan ke event lain.']];
- ?>
- <div class="legend-panel">
-  <div class="lg-group">
-   <div class="lg-title"><i class="bi bi-flag"></i>Keterangan Kondisi</div>
-   <div class="lg-grid">
-    <?php foreach($kondDesc as $k=>$d):?><div class="lg-item"><span class="kond kond-<?=$k?>"><?=strtoupper($k)?></span><span class="lg-desc"><?=e($d)?></span></div><?php endforeach;?>
-   </div>
-  </div>
-  <div class="lg-group">
-   <div class="lg-title"><i class="bi bi-book"></i>Arti Istilah</div>
-   <div class="lg-grid">
-    <?php foreach($terms as [$ico,$t,$d]):?><div class="lg-item"><span class="lg-ico"><i class="bi <?=$ico?>"></i></span><span class="lg-desc"><b><?=e($t)?></b><?=e($d)?></span></div><?php endforeach;?>
-   </div>
-  </div>
- </div>
 </div>
 
 <div class="soft-card">
@@ -152,6 +118,8 @@ function psSouvOptions(){
  sel.value=psSouv;sel.classList.toggle('active',psSouv!=='');
  sel.closest('.select-wrap').style.display=psItems.length>1?'':'none';
 }
+// Total souvenir yang sudah diambil (seluruh peserta hadir di event ini), untuk judul kolom per souvenir.
+function psTaken(id){return psData.reduce((n,x)=>n+((x.take&&x.take[id])?x.take[id].q:0),0);}
 function psRender(){
  if(!document.getElementById('psRows'))return;
  psSouvOptions();
@@ -160,7 +128,7 @@ function psRender(){
  psShown=psData.filter(x=>!q||[x.nik,x.name,x.department,x.souvenirs].some(v=>(v||'').toString().toLowerCase().includes(q)));
  const rs=items.length?' rowspan="2"':'';
  document.getElementById('psHead').innerHTML='<tr><th'+rs+'>No</th><th'+rs+'>NIK</th><th'+rs+'>Nama</th><th'+rs+'>Departemen</th><th'+rs+'>Waktu Check-in</th><th'+rs+'>Status</th>'
-  +items.map(it=>'<th colspan="2" class="ps-grp"><i class="bi bi-gift"></i>'+esc(it.name)+'</th>').join('')+'</tr>'
+  +items.map(it=>'<th colspan="2" class="ps-grp"><i class="bi bi-gift"></i>'+esc(it.name)+' <span class="ps-total" title="Total sudah diambil">'+psTaken(it.id)+'</span></th>').join('')+'</tr>'
   +(items.length?'<tr class="ps-sub">'+items.map(()=>'<th class="ps-q g-start">Jumlah</th><th>Waktu Ambil</th>').join('')+'</tr>':'');
  const total=Math.max(1,Math.ceil(psShown.length/PAGE_SIZE));if(psPage>total)psPage=total;
  const start=(psPage-1)*PAGE_SIZE,rows=psShown.slice(start,start+PAGE_SIZE);
