@@ -4,19 +4,26 @@ use App\Auth;use App\Database;use App\Support\Audit;
 final class SouvenirController {
  public static function index():void{
   Auth::requireRole(['ADMIN']);$db=Database::connection();$q=trim($_GET['q']??'');
-  $sql="SELECT * FROM souvenirs WHERE 1=1";$p=[];
-  if($q!==''){$sql.=" AND (name LIKE ? OR code LIKE ?)";$x="%$q%";array_push($p,$x,$x);}
-  $sql.=" ORDER BY code ASC";
+  // taken = jumlah yang sudah diambil peserta; Total Stok = stock (sisa di gudang) + taken.
+  $sql="SELECT s.*,COALESCE(t.q,0) taken FROM souvenirs s LEFT JOIN (SELECT souvenir_id,SUM(quantity) q FROM souvenir_transactions GROUP BY souvenir_id) t ON t.souvenir_id=s.id WHERE 1=1";$p=[];
+  if($q!==''){$sql.=" AND (s.name LIKE ? OR s.code LIKE ?)";$x="%$q%";array_push($p,$x,$x);}
+  $sql.=" ORDER BY s.code ASC";
   $s=$db->prepare($sql);$s->execute($p);$souvenirs=$s->fetchAll();
   require dirname(__DIR__,2).'/views/souvenirs/index.php';
  }
  public static function form(?int $id=null):void{
   Auth::requireRole(['ADMIN']);$db=Database::connection();$souv=null;if($id){$s=$db->prepare("SELECT * FROM souvenirs WHERE id=?");$s->execute([$id]);$souv=$s->fetch();}
+  // Admin mengisi Total Stok (jumlah yang dimiliki). Kolom stock di database tetap menyimpan sisa di gudang
+  // (dikurangi otomatis saat scan), jadi saat simpan: stock = Total Stok - yang sudah diambil.
+  $takenOf=function()use($db,$id):int{if(!$id)return 0;$t=$db->prepare("SELECT COALESCE(SUM(quantity),0) FROM souvenir_transactions WHERE souvenir_id=?");$t->execute([$id]);return (int)$t->fetchColumn();};
+  $taken=$takenOf();
   if($_SERVER['REQUEST_METHOD']==='POST'){verify_csrf();
    if(trim($_POST['name']??'')===''){flash('error','Nama wajib diisi.');redirect($id?'/souvenirs/'.$id.'/edit':'/souvenirs/create');}
    if(trim($_POST['stock']??'')===''){flash('error','Stok wajib diisi.');redirect($id?'/souvenirs/'.$id.'/edit':'/souvenirs/create');}
    if(!in_array($_POST['status']??'',['ACTIVE','INACTIVE'],true)){flash('error','Status tidak valid.');redirect($id?'/souvenirs/'.$id.'/edit':'/souvenirs/create');}
-   $d=[trim($_POST['name']),(int)$_POST['stock'],$_POST['status']??'ACTIVE'];
+   $taken=$takenOf();$total=(int)$_POST['stock'];
+   if($total<$taken){flash('error','Total Stok tidak boleh kurang dari jumlah yang sudah diambil peserta ('.$taken.').');redirect($id?'/souvenirs/'.$id.'/edit':'/souvenirs/create');}
+   $d=[trim($_POST['name']),$total-$taken,$_POST['status']??'ACTIVE'];
    if($id){$s=$db->prepare("UPDATE souvenirs SET name=?,stock=?,status=?,updated_at=NOW() WHERE id=?");$s->execute([...$d,$id]);Audit::log('UPDATE','SOUVENIR',$id,$d[0]);}
    else{
     try{$code=next_sequence_code($db,'souvenirs','code','SOV');}
@@ -40,7 +47,7 @@ final class SouvenirController {
     if(!isset($byId[$sid]))continue;
     if($qty<=0)continue;
     $available=(int)$byId[$sid]['stock']-($elsewhere[$sid]??0);
-    if($qty>$available){$errors[]=$byId[$sid]['name'].' (diminta '.$qty.', tersisa '.max($available,0).' setelah dikurangi alokasi event lain dari total stock '.$byId[$sid]['stock'].')';}
+    if($qty>$available){$errors[]=$byId[$sid]['name'].' (diminta '.$qty.', tersedia '.max($available,0).' setelah dikurangi alokasi event lain dari sisa stok '.$byId[$sid]['stock'].')';}
    }
    if($errors){flash('error','Alokasi melebihi stock yang tersedia: '.implode(', ',$errors).'.');redirect('/events/'.$eventId.'/souvenirs');}
    foreach($_POST['qty']??[] as $sid=>$qty){

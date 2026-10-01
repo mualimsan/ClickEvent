@@ -2,6 +2,10 @@
 ?>
 <style>
 .stock-table td{vertical-align:middle;}
+.stock-table>thead>tr>th,.stock-table>tbody>tr>td{padding-left:10px!important;padding-right:10px!important;}
+.stock-table>thead>tr>th{white-space:nowrap;font-size:10.5px;}
+.stock-table td:nth-child(3){white-space:nowrap;}
+.stock-table td:nth-child(2){white-space:nowrap;}
 .stock-table .num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;}
 .stock-table th.num{text-align:right;}
 .stock-bar{height:6px;border-radius:6px;background:#eef1f0;overflow:hidden;min-width:90px;margin-top:5px;}
@@ -20,15 +24,17 @@
 .pesan-toggle[aria-expanded="true"]{background:#eef8e6;border-color:#cfe8bf;color:var(--accent);}
 .pesan-toggle[aria-expanded="true"] i{transform:rotate(180deg);}
 .stock-table tr.pesan-row>td{background:#fafcfb;padding:0 16px 14px;border-bottom:1px solid #eef0ef;}
-.pesan-panel{border:1px solid #e3ebe9;border-radius:10px;background:#fff;max-width:560px;margin-left:auto;overflow:hidden;}
+.pesan-panel{border:1px solid #e3ebe9;border-radius:10px;background:#fff;max-width:680px;margin-left:auto;overflow:hidden;}
 .pesan-panel .pp-head{display:flex;justify-content:space-between;gap:10px;padding:9px 14px;font-size:12px;font-weight:700;color:var(--forest);background:#f6f8f7;border-bottom:1px solid #eef0ef;}
 .pesan-panel .pp-head span{font-weight:500;color:#7c8b86;}
 .pesan-panel .pp-body{max-height:220px;overflow-y:auto;}
 .pesan-panel table{width:100%;border-collapse:collapse;font-size:12.5px;}
 .pesan-panel td{padding:7px 14px;border-bottom:1px solid #f1f3f2;}
 .pesan-panel tr:last-child td{border-bottom:0;}
+.pesan-panel thead th{padding:7px 14px;font-size:10.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#7c8b86;border-bottom:1px solid #eef0ef;background:#fbfcfc;white-space:nowrap;}
+.pesan-panel tfoot td{font-weight:800;color:var(--forest);background:#f6f8f7;border-top:1px solid #e3ebe9;}
 .pesan-panel .st{font-size:10px;font-weight:700;letter-spacing:.03em;border-radius:5px;padding:2px 6px;}
-.pesan-panel .st-PUBLISHED{background:#eef8e6;color:#2f7d1f;}.pesan-panel .st-DRAFT{background:#eef1f0;color:#5b6663;}
+.pesan-panel .st-PUBLISHED{background:#eef8e6;color:#2f7d1f;}.pesan-panel .st-DRAFT{background:#eef1f0;color:#5b6663;}.pesan-panel .st-CLOSED{background:#e9ecef;color:#1c2a26;}.pesan-panel .st-CANCELLED{background:#fdeceb;color:#a3372b;}
 .souv-dd{min-width:240px;}
 .ps-table thead th{vertical-align:middle;}
 .ps-table thead tr.ps-sub th{font-size:10.5px;padding-top:6px;padding-bottom:8px;color:#7a857f;}
@@ -50,7 +56,7 @@
  <div class="rt-row">
   <div class="rt-field rt-event"><label class="rt-label" for="eventSel">Tampilkan</label><div class="select-wrap"><select id="eventSel" class="form-select"><option value="0">Semua (posisi stok gudang)</option><?php foreach($events as $e):?><option value="<?=$e['id']?>" <?=$event==$e['id']?'selected':''?>>Event: <?=e($e['event_name'])?> — <?=dmy($e['event_date'])?></option><?php endforeach;?></select><i class="bi bi-chevron-down select-arrow"></i></div></div>
  </div>
- <div class="rt-hint"><i class="bi bi-info-circle"></i><span><?=$event?'Menampilkan alokasi souvenir untuk event ini dan jumlah yang sudah diambil peserta.':'Posisi stok seluruh souvenir di gudang. <strong>Dipesan Event</strong> = jatah event aktif (DRAFT/PUBLISHED) yang belum diambil; <strong>Tersedia</strong> = stok gudang yang masih bisa dialokasikan ke event lain.'?> Event berstatus DRAFT tidak muncul di pilihan.</span></div>
+ <div class="rt-hint"><i class="bi bi-info-circle"></i><span><?=$event?'Menampilkan alokasi souvenir untuk event ini dan jumlah yang sudah diambil peserta.':'Hitungan stok: <strong>Tersedia = Stok Awal − Booked Event</strong> · <strong>Sisa Event = Booked Event − Sudah Diambil</strong> · <strong>Stok Akhir = Tersedia + Sisa Event</strong>. Booked Event dihitung dari event aktif (DRAFT/PUBLISHED); untuk event yang sudah selesai hanya yang sudah diambil.'?> Event berstatus DRAFT tidak muncul di pilihan.</span></div>
 </div>
 
 
@@ -58,17 +64,21 @@
  <div class="section-title"><h3><i class="bi bi-boxes"></i><?=$event?'Alokasi per Souvenir':'Stok per Souvenir'?></h3></div>
  <div class="data-card" data-live="stocktable"><div class="table-responsive"><table class="data-table stock-table">
  <?php if($event):?>
-  <thead><tr><th>No</th><th>Kode</th><th>Souvenir</th><th class="num">Total Alokasi</th><th class="num">Telah Diserahkan</th><th class="num">Belum Diserahkan</th><th>Realisasi</th><th class="num">Stok Gudang</th><th>Kondisi</th></tr></thead><tbody>
-  <?php if(!$stock):?><tr><td colspan="9" class="text-muted text-center py-4">Belum ada souvenir yang dialokasikan ke event ini.</td></tr><?php endif;?>
-  <?php foreach($stock as $i=>$r):?><tr><td><?=$i+1?></td><td><?=e($r['code'])?></td><td class="fw-semibold"><?=e($r['name'])?></td><td class="num"><?=number_format($r['alokasi'],0,',','.')?></td><td class="num"><?=number_format($r['diambil'],0,',','.')?></td><td class="num fw-semibold"><?=number_format($r['sisa'],0,',','.')?></td><td><div class="small text-muted"><?=$r['persen']?>%</div><div class="stock-bar"><i style="width:<?=min($r['persen'],100)?>%"></i></div></td><td class="num"><?=number_format($r['stock'],0,',','.')?></td><td><span class="kond kond-<?=$r['kondisi']?>"><?=strtoupper($r['kondisi'])?></span></td></tr><?php endforeach;?>
+  <thead><tr><th>No</th><th>Kode</th><th>Souvenir</th><th class="num">Total Alokasi</th><th class="num">Telah Diserahkan</th><th class="num">Belum Diserahkan</th><th>Realisasi</th><th>Kondisi</th></tr></thead><tbody>
+  <?php if(!$stock):?><tr><td colspan="8" class="text-muted text-center py-4">Belum ada souvenir yang dialokasikan ke event ini.</td></tr><?php endif;?>
+  <?php foreach($stock as $i=>$r):?><tr><td><?=$i+1?></td><td><?=e($r['code'])?></td><td class="fw-semibold"><?=e($r['name'])?></td><td class="num"><?=number_format($r['alokasi'],0,',','.')?></td><td class="num"><?=number_format($r['diambil'],0,',','.')?></td><td class="num fw-semibold"><?=number_format($r['sisa'],0,',','.')?></td><td><div class="small text-muted"><?=$r['persen']?>%</div><div class="stock-bar"><i style="width:<?=min($r['persen'],100)?>%"></i></div></td><td><span class="kond kond-<?=$r['kondisi']?>"><?=strtoupper($r['kondisi'])?></span></td></tr><?php endforeach;?>
  <?php else:?>
-  <thead><tr><th>No</th><th>Kode</th><th>Souvenir</th><th class="num" title="Sisa fisik di gudang saat ini">Stok Gudang</th><th class="num" title="Jumlah yang sudah dibagikan ke peserta">Sudah Diambil</th><th class="num" title="Jatah event DRAFT/PUBLISHED yang belum diambil">Dipesan Event</th><th class="num" title="Stok gudang yang masih bisa dialokasikan">Tersedia</th><th>Kondisi</th></tr></thead><tbody>
-  <?php if(!$stock):?><tr><td colspan="8" class="text-muted text-center py-4">Belum ada data souvenir.</td></tr><?php endif;?>
+  <thead><tr><th>No</th><th>Kode</th><th>Souvenir</th><th class="num" title="Jumlah souvenir yang dimiliki">Stok Awal</th><th class="num" title="Jumlah yang dialokasikan untuk event (termasuk yang sudah diambil)">Booked Event</th><th class="num" title="Stok Awal dikurangi Booked Event">Tersedia</th><th class="num" title="Sudah diserahkan ke peserta">Sudah Diambil</th><th class="num" title="Booked Event dikurangi Sudah Diambil">Sisa Event</th><th class="num" title="Tersedia ditambah Sisa Event (stok fisik di gudang)">Stok Akhir</th><th>Kondisi</th></tr></thead><tbody>
+  <?php if(!$stock):?><tr><td colspan="10" class="text-muted text-center py-4">Belum ada data souvenir.</td></tr><?php endif;?>
   <?php $n=fn($v)=>number_format($v,0,',','.');foreach($stock as $i=>$r):?><tr><td><?=$i+1?></td><td><?=e($r['code'])?></td><td class="fw-semibold"><?=e($r['name'])?><?=$r['status']!=='ACTIVE'?' <span class="text-muted small fw-normal">(nonaktif)</span>':''?></td>
-  <td class="num fw-semibold"><?=$n($r['stock'])?></td><td class="num text-muted"><?=$n($r['diambil'])?></td>
-  <td class="num"><?=$n($r['dipesan'])?><?php if($r['dipesan_detail']):?><br><button type="button" class="pesan-toggle" aria-expanded="false" data-target="pesan-<?=$i?>"><?=count($r['dipesan_detail'])?> event<i class="bi bi-chevron-down"></i></button><?php endif;?></td>
-  <td class="num fw-semibold <?=$r['tersedia']<0?'text-danger':''?>"><?=$n($r['tersedia'])?></td><td><span class="kond kond-<?=$r['kondisi']?>"><?=strtoupper($r['kondisi'])?></span></td></tr>
-  <?php if($r['dipesan_detail']):?><tr class="pesan-row" id="pesan-<?=$i?>" hidden><td colspan="8"><div class="pesan-panel"><div class="pp-head">Rincian Dipesan Event · <?=e($r['name'])?><span><?=count($r['dipesan_detail'])?> event · total <?=$n($r['dipesan'])?></span></div><div class="pp-body"><table><?php foreach($r['dipesan_detail'] as $d):?><tr><td><?=e($d['event'])?></td><td><span class="st st-<?=$d['status']?>"><?=$d['status']?></span></td><td class="text-end fw-semibold"><?=$n($d['qty'])?></td></tr><?php endforeach;?></table></div></div></td></tr><?php endif;?>
+  <td class="num fw-semibold"><?=$n($r['stok_awal'])?></td>
+  <td class="num"><?=$n($r['booked'])?><?php if($r['detail']):?><br><button type="button" class="pesan-toggle" aria-expanded="false" data-target="pesan-<?=$i?>"><?=count($r['detail'])?> event<i class="bi bi-chevron-down"></i></button><?php endif;?></td>
+  <td class="num fw-bold <?=$r['tersedia']<0?'text-danger':''?>"><?=$n($r['tersedia'])?></td>
+  <td class="num text-muted"><?=$n($r['diambil'])?></td>
+  <td class="num"><?=$n($r['sisa_event'])?></td>
+  <td class="num fw-semibold"><?=$n($r['stok_akhir'])?></td>
+  <td><span class="kond kond-<?=$r['kondisi']?>"><?=strtoupper($r['kondisi'])?></span></td></tr>
+  <?php if($r['detail']):?><tr class="pesan-row" id="pesan-<?=$i?>" hidden><td colspan="10"><div class="pesan-panel"><div class="pp-head">Rincian per Event · <?=e($r['name'])?><span><?=count($r['detail'])?> event</span></div><div class="pp-body"><table><thead><tr><th>Event</th><th>Status</th><th class="text-end">Booked</th><th class="text-end">Sudah Diambil</th><th class="text-end">Sisa Event</th></tr></thead><tbody><?php foreach($r['detail'] as $d):?><tr><td><?=e($d['event'])?></td><td><span class="st st-<?=$d['status']?>"><?=$d['status']?></span></td><td class="text-end"><?=$n($d['booked'])?></td><td class="text-end text-muted"><?=$n($d['claimed'])?></td><td class="text-end fw-bold"><?=$n($d['sisa'])?></td></tr><?php endforeach;?></tbody><?php if(count($r['detail'])>1):?><tfoot><tr><td colspan="2">Total</td><td class="text-end"><?=$n($r['booked'])?></td><td class="text-end"><?=$n($r['diambil'])?></td><td class="text-end"><?=$n($r['sisa_event'])?></td></tr></tfoot><?php endif;?></table></div></div></td></tr><?php endif;?>
   <?php endforeach;?>
  <?php endif;?>
  </tbody></table></div></div>

@@ -78,26 +78,36 @@ final class ReportController {
  // Monitoring stok per souvenir. Satu sumber untuk tabel di halaman & Excel.
  // Tanpa event: posisi gudang (stok fisik, dipesan event aktif, tersedia, total diambil).
  // Dengan event : alokasi event tsb vs yang sudah diambil.
- // "Dipesan" memakai aturan yang sama dengan alokasi souvenir: jatah event DRAFT/PUBLISHED yang belum diambil.
+ // "Dipesan" memakai aturan yang sama dengan alokasi souvenir: alokasi event DRAFT/PUBLISHED yang belum diambil.
  private static function stockRows(\PDO $db,int $event):array{
   $claimedPerEvent="SELECT st.souvenir_id,ii.event_id,SUM(st.quantity) claimed FROM souvenir_transactions st JOIN invitations ii ON ii.id=st.invitation_id GROUP BY st.souvenir_id,ii.event_id";
   if(!$event){
-   // Rincian jatah yang dipesan tiap event aktif (untuk menjelaskan angka "Dipesan Event")
+   // Rincian per event. Booked = alokasi event aktif (DRAFT/PUBLISHED); untuk event CLOSED/CANCELLED
+   // hanya yang benar-benar diambil (sisa alokasinya sudah dilepas). Sisa Event = Booked - Sudah Diambil.
+   $evs=[];foreach($db->query("SELECT id,event_name,status,event_date FROM events") as $e)$evs[(int)$e['id']]=$e;
+   $pairs=[];
+   foreach($db->query("SELECT souvenir_id,event_id,quantity_allocated FROM event_souvenirs") as $x)$pairs[$x['souvenir_id'].'-'.$x['event_id']]=['sid'=>(int)$x['souvenir_id'],'eid'=>(int)$x['event_id'],'alloc'=>(int)$x['quantity_allocated'],'claimed'=>0];
+   foreach($db->query($claimedPerEvent) as $x){$k=$x['souvenir_id'].'-'.$x['event_id'];$pairs[$k]=($pairs[$k]??['sid'=>(int)$x['souvenir_id'],'eid'=>(int)$x['event_id'],'alloc'=>0,'claimed'=>0]);$pairs[$k]['claimed']=(int)$x['claimed'];}
+   uasort($pairs,fn($x,$y)=>[$evs[$x['eid']]['event_date']??'',$x['eid']]<=>[$evs[$y['eid']]['event_date']??'',$y['eid']]);
    $detail=[];
-   foreach($db->query("SELECT es.souvenir_id,e.event_name,e.status,GREATEST(es.quantity_allocated-COALESCE(c.claimed,0),0) qty FROM event_souvenirs es JOIN events e ON e.id=es.event_id LEFT JOIN ($claimedPerEvent) c ON c.souvenir_id=es.souvenir_id AND c.event_id=es.event_id WHERE e.status IN ('DRAFT','PUBLISHED') ORDER BY e.event_date,e.id") as $d)
-    if((int)$d['qty']>0)$detail[(int)$d['souvenir_id']][]=['event'=>$d['event_name'],'status'=>$d['status'],'qty'=>(int)$d['qty']];
+   foreach($pairs as $x){
+    $ev=$evs[$x['eid']]??null;if(!$ev)continue;$active=in_array($ev['status'],['DRAFT','PUBLISHED'],true);
+    $booked=$active?max($x['alloc'],$x['claimed']):$x['claimed'];if($booked<=0)continue;
+    $detail[$x['sid']][]=['event'=>$ev['event_name'],'status'=>$ev['status'],'booked'=>$booked,'claimed'=>$x['claimed'],'sisa'=>$booked-$x['claimed']];
+   }
    $rows=$db->query("SELECT s.id,s.code,s.name,s.status,s.stock,COALESCE(tk.qty,0) diambil,COALESCE(rs.alloc,0) dialokasikan,COALESCE(rs.qty,0) dipesan
     FROM souvenirs s
     LEFT JOIN (SELECT souvenir_id,SUM(quantity) qty FROM souvenir_transactions GROUP BY souvenir_id) tk ON tk.souvenir_id=s.id
     LEFT JOIN (SELECT es.souvenir_id,SUM(es.quantity_allocated) alloc,SUM(GREATEST(es.quantity_allocated-COALESCE(c.claimed,0),0)) qty FROM event_souvenirs es JOIN events e ON e.id=es.event_id LEFT JOIN ($claimedPerEvent) c ON c.souvenir_id=es.souvenir_id AND c.event_id=es.event_id WHERE e.status IN ('DRAFT','PUBLISHED') GROUP BY es.souvenir_id) rs ON rs.souvenir_id=s.id
     WHERE s.status='ACTIVE' OR COALESCE(tk.qty,0)>0 OR COALESCE(rs.alloc,0)>0 ORDER BY s.code")->fetchAll();
    return array_map(function($r)use($detail){
-    $stock=(int)$r['stock'];$dipesan=(int)$r['dipesan'];$tersedia=$stock-$dipesan;$diambil=(int)$r['diambil'];
-    $kondisi=$stock<=0?'Habis':($tersedia<0?'Kurang':($stock<5||$tersedia<5?'Menipis':'Aman'));
+    // Stok Awal = Sisa Event + Sudah Diambil + Tersedia;  Tersedia = Stok Awal - Booked Event;  Stok Akhir = Tersedia + Sisa Event (= stok fisik)
     $det=$detail[(int)$r['id']]??[];
-    // Alur: Stok Gudang - Dipesan Event = Tersedia
-    return ['code'=>$r['code'],'name'=>$r['name'],'status'=>$r['status'],'diambil'=>$diambil,'stock'=>$stock,'dialokasikan'=>(int)$r['dialokasikan'],'dipesan'=>$dipesan,'tersedia'=>$tersedia,'kondisi'=>$kondisi,
-     'dipesan_detail'=>$det,'dipesan_text'=>implode('; ',array_map(fn($d)=>$d['event'].($d['status']==='DRAFT'?' (DRAFT)':'').': '.$d['qty'],$det))];
+    $stock=(int)$r['stock'];$diambil=(int)$r['diambil'];$stokAwal=$stock+$diambil;
+    $sisaEvent=array_sum(array_column($det,'sisa'));$booked=$sisaEvent+$diambil;$tersedia=$stokAwal-$booked;$stokAkhir=$tersedia+$sisaEvent;
+    $kondisi=$stokAkhir<=0?'Habis':($tersedia<0?'Kurang':($stokAkhir<5||$tersedia<5?'Menipis':'Aman'));
+    return ['code'=>$r['code'],'name'=>$r['name'],'status'=>$r['status'],'stok_awal'=>$stokAwal,'booked'=>$booked,'tersedia'=>$tersedia,'diambil'=>$diambil,'sisa_event'=>$sisaEvent,'stok_akhir'=>$stokAkhir,'stock'=>$stock,'kondisi'=>$kondisi,
+     'detail'=>$det,'detail_text'=>implode('; ',array_map(fn($d)=>$d['event'].' ('.$d['status'].'): booked '.$d['booked'].', diambil '.$d['claimed'].', sisa '.$d['sisa'],$det))];
    },$rows);
   }
   $s=$db->prepare("SELECT s.code,s.name,s.status,s.stock,COALESCE(es.quantity_allocated,0) alokasi,COALESCE(c.claimed,0) diambil
@@ -231,11 +241,11 @@ final class ReportController {
   if($mode==='stock'){
    $rows=self::stockRows($db,$event);
    if($event){
-    $headers=['No','Kode','Souvenir','Total Alokasi','Telah Diserahkan','Belum Diserahkan','Realisasi Penyaluran (%)','Stok Gudang','Kondisi'];
-    $keys=['code','name','alokasi','diambil','sisa','persen','stock','kondisi'];
+    $headers=['No','Kode','Souvenir','Total Alokasi','Telah Diserahkan','Belum Diserahkan','Realisasi Penyaluran (%)','Kondisi'];
+    $keys=['code','name','alokasi','diambil','sisa','persen','kondisi'];
    }else{
-    $headers=['No','Kode','Souvenir','Stok Gudang','Sudah Diambil','Dipesan Event','Tersedia','Kondisi','Rincian Dipesan'];
-    $keys=['code','name','stock','diambil','dipesan','tersedia','kondisi','dipesan_text'];
+    $headers=['No','Kode','Souvenir','Stok Awal','Booked Event','Tersedia','Sudah Diambil','Sisa Event','Stok Akhir','Kondisi','Rincian per Event'];
+    $keys=['code','name','stok_awal','booked','tersedia','diambil','sisa_event','stok_akhir','kondisi','detail_text'];
    }
    [$ss,$sheet,$headerRow,$lastCol]=ExcelExport::newSheet('Monitoring Stok Souvenir',self::subtitle($db,$event,$event?[]:['Posisi stok gudang'],count($rows)),$headers);
    $r=$headerRow+1;
