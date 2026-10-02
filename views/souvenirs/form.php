@@ -15,7 +15,7 @@
 <div class="row g-4">
 <?php if($souv):?><div class="col-md-4"><label>Kode</label><input class="form-control" value="<?=e($souv['code'])?>" disabled></div><?php endif;?>
 <div class="col-md-<?=$souv?'8':'12'?>"><label>Nama <span class="req-star">*</span></label><input name="name" class="form-control" value="<?=e($souv['name']??'')?>" placeholder="Contoh: Tumbler USC" required></div>
-<div class="col-md-4"><label>Total Stok <span class="req-star">*</span></label><input type="number" min="<?=(int)$taken?>" name="stock" class="form-control" value="<?=e(($souv['stock']??0)+$taken)?>" placeholder="Contoh: 100" required><div class="form-text"><?php if($taken>0):?>Sudah diambil <b><?=$taken?></b> · sisa di gudang <b><?=(int)$souv['stock']?></b>. Isi jumlah total yang dimiliki (minimal <?=$taken?>).<?php else:?>Jumlah souvenir yang dimiliki.<?php endif;?></div></div>
+<div class="col-md-4"><label>Stok Gudang <span class="req-star">*</span></label><input type="number" min="0" name="stock" class="form-control" value="<?=e($souv['stock']??0)?>" placeholder="Contoh: 100" required><div class="form-text">Jumlah fisik yang ada di gudang saat ini. Saat restock, isi sesuai hasil hitung gudang.</div></div>
 <div class="col-md-4"><label>Status <span class="req-star">*</span></label><div class="select-wrap"><select name="status" class="form-select" required><option>ACTIVE</option><option <?=($souv['status']??'')==='INACTIVE'?'selected':''?>>INACTIVE</option></select><i class="bi bi-chevron-down select-arrow"></i></div></div>
 </div>
 <button class="btn-brand mt-4" style="width:100%;justify-content:center;padding:12px;font-size:14px;"><i class="bi bi-check2"></i>Simpan</button>
@@ -24,7 +24,7 @@
 <h3 style="font-size:14px;font-weight:700;margin:0 0 16px;">Panduan Status &amp; Stok</h3>
 <div class="sg-item"><span class="sg-dot" style="background:#1f7a4c"></span><div><div class="sg-title">ACTIVE</div><div class="sg-desc">Souvenir tersedia dan bisa dialokasikan ke event serta muncul di Scanner Souvenir.</div></div></div>
 <div class="sg-item"><span class="sg-dot" style="background:#6b7570"></span><div><div class="sg-title">INACTIVE</div><div class="sg-desc">Souvenir disembunyikan dari pilihan alokasi event dan scanner, tapi riwayat klaim yang sudah ada tetap tersimpan.</div></div></div>
-<div class="sg-item"><span class="sg-dot" style="background:#4a7fa8"></span><div><div class="sg-title">Total Stok</div><div class="sg-desc">Jumlah souvenir yang dimiliki, termasuk yang sudah diambil peserta. Sisa di gudang dihitung otomatis (Total Stok dikurangi yang sudah diambil). Jumlah yang dialokasikan ke event akan dicadangkan dan tidak dapat digunakan event lain sampai diambil peserta atau event selesai/dibatalkan.</div></div></div>
+<div class="sg-item"><span class="sg-dot" style="background:#4a7fa8"></span><div><div class="sg-title">Stok Gudang</div><div class="sg-desc">Jumlah fisik souvenir di gudang saat ini, berkurang otomatis setiap souvenir diserahkan ke peserta. Jumlah yang dialokasikan ke event aktif akan dicadangkan dan tidak dapat digunakan event lain sampai diambil peserta atau event selesai.</div></div></div>
 </div>
 </div>
 <?php require __DIR__.'/../layout/footer.php';

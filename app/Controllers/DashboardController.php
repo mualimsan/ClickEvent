@@ -4,7 +4,7 @@ use App\Auth;use App\Database;use App\Services\ExcelExport;
 use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
 final class DashboardController {
  public static function index():void{
-  Auth::requireRole(['ADMIN']);$db=Database::connection();
+  Auth::requireRole(['ADMIN','EVENT_OPERATOR']);$db=Database::connection();
   $employees=(int)$db->query("SELECT COUNT(*) FROM employees WHERE status='ACTIVE'")->fetchColumn();
   $upcomingEvents=(int)$db->query("SELECT COUNT(*) FROM events WHERE status='PUBLISHED' AND event_date>=CURDATE()")->fetchColumn();
   $pendingInvites=(int)$db->query("SELECT COUNT(*) FROM invitations i JOIN events e ON e.id=i.event_id WHERE e.status='PUBLISHED' AND i.email_status!='SENT'")->fetchColumn();
@@ -75,7 +75,6 @@ final class DashboardController {
    ['key'=>'stok','label'=>'Stok Souvenir Menipis','value'=>$lowStock,'risk'=>$stokRisk,'trend'=>$trendStokNew,'why'=>'Jumlah jenis souvenir dengan stok di bawah 5 — peringatan dini supaya bisa restock sebelum kehabisan di hari-H.','items'=>$stockItems],
   ];
   $events=$db->query("SELECT e.*,COUNT(DISTINCT i.id) invited,COUNT(DISTINCT a.id) checked_in FROM events e LEFT JOIN invitations i ON i.event_id=e.id LEFT JOIN attendances a ON a.invitation_id=i.id GROUP BY e.id ORDER BY e.event_date DESC LIMIT 25")->fetchAll();
-  $recentClaims=$db->query("SELECT emp.name,emp.nik,ev.event_name,s.name souvenir_name,st.quantity,st.collected_at FROM souvenir_transactions st JOIN invitations i ON i.id=st.invitation_id JOIN employees emp ON emp.id=i.employee_id JOIN events ev ON ev.id=i.event_id JOIN souvenirs s ON s.id=st.souvenir_id ORDER BY st.collected_at DESC LIMIT 25")->fetchAll();
   $hariMap=['Sunday'=>'Minggu','Monday'=>'Senin','Tuesday'=>'Selasa','Wednesday'=>'Rabu','Thursday'=>'Kamis','Friday'=>'Jumat','Saturday'=>'Sabtu'];
   $bulanMap=['01'=>'Januari','02'=>'Februari','03'=>'Maret','04'=>'April','05'=>'Mei','06'=>'Juni','07'=>'Juli','08'=>'Agustus','09'=>'September','10'=>'Oktober','11'=>'November','12'=>'Desember'];
   $todayLabel=$hariMap[date('l')].', '.((int)date('d')).' '.$bulanMap[date('m')].' '.date('Y');
@@ -83,7 +82,7 @@ final class DashboardController {
   require dirname(__DIR__,2).'/views/dashboard.php';
  }
  public static function exportCard(string $key):void{
-  Auth::requireRole(['ADMIN']);$db=Database::connection();
+  Auth::requireRole(['ADMIN','EVENT_OPERATOR']);$db=Database::connection();
   $printed='Dicetak: '.date('d-m-Y H:i');
   switch($key){
    case 'karyawan':

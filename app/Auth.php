@@ -24,9 +24,20 @@ final class Auth {
   return false;
  }
  public static function logout():void{$_SESSION=[];if(ini_get('session.use_cookies')){ $p=session_get_cookie_params();setcookie(session_name(),'',['expires'=>time()-42000,'path'=>$p['path'],'domain'=>$p['domain'],'secure'=>$p['secure'],'httponly'=>$p['httponly'],'samesite'=>$p['samesite']??'Lax']);}session_destroy();}
+ // Event PUBLISHED yang tanggalnya sudah lewat otomatis menjadi CLOSED (scan hanya bisa di hari event).
+ // Dijalankan sekali per request yang login; murah karena hanya menyentuh baris yang perlu diubah.
+ private static function autoCloseEvents():void{
+  try{
+   $db=Database::connection();
+   $ids=$db->query("SELECT id,event_name FROM events WHERE status='PUBLISHED' AND event_date<CURDATE()")->fetchAll();
+   if(!$ids)return;
+   $db->exec("UPDATE events SET status='CLOSED',updated_at=NOW() WHERE status='PUBLISHED' AND event_date<CURDATE()");
+   foreach($ids as $e)\App\Support\Audit::log('AUTO_CLOSE','EVENT',(int)$e['id'],$e['event_name'].' (tanggal sudah lewat)');
+  }catch(\Throwable $e){}
+ }
  public static function isAdmin():bool{return (self::user()['role']??null)==='ADMIN';}
  // Halaman awal setelah login: admin ke dashboard, operator langsung ke scanner.
- public static function home():string{return ['ADMIN'=>'/dashboard','EVENT_OPERATOR'=>'/scanner/attendance'][self::user()['role']??'']??'/reports/attendance';}
+ public static function home():string{return ['ADMIN'=>'/dashboard','EVENT_OPERATOR'=>'/dashboard'][self::user()['role']??'']??'/reports/attendance';}
  public static function roleLabel(?string $role):string{return ['ADMIN'=>'Admin','EVENT_OPERATOR'=>'Operator','VIEWER'=>'Viewer'][$role]??(string)$role;}
  public static function requireLogin():void{
   if(!self::check())redirect('/login');
@@ -35,6 +46,7 @@ final class Auth {
   $s=Database::connection()->prepare("SELECT * FROM users WHERE id=?");$s->execute([self::user()['id']]);$u=$s->fetch();
   if(!$u||$u['status']!=='ACTIVE'){unset($_SESSION['user']);session_regenerate_id(true);flash('error','Akun Anda sudah dinonaktifkan. Hubungi administrator.');redirect('/login');}
   $_SESSION['user']=$u;
+  self::autoCloseEvents();
  }
  public static function requireRole(array $roles):void{
   self::requireLogin();

@@ -4,7 +4,7 @@ $qrCells='';
 $isFinder=function(int $x,int $y):bool{foreach([[0,0],[14,0],[0,14]] as [$fx,$fy]){if($x>=$fx-1&&$x<=$fx+7&&$y>=$fy-1&&$y<=$fy+7)return true;}return false;};
 for($y=0;$y<21;$y++)for($x=0;$x<21;$x++){if($isFinder($x,$y))continue;if((($x*7+$y*13+$x*$y)%5)<2)$qrCells.='<rect x="'.$x.'" y="'.$y.'" width="1" height="1"/>';}
 foreach([[0,0],[14,0],[0,14]] as [$fx,$fy])$qrCells.='<path d="M'.$fx.' '.$fy.'h7v7h-7z M'.($fx+1).' '.($fy+1).'v5h5v-5z" fill-rule="evenodd"/><rect x="'.($fx+2).'" y="'.($fy+2).'" width="3" height="3"/>';
-?><!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Masuk — Sistem Invitation USC</title>
+?><!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Masuk — USC Click Event</title>
 <link rel="icon" type="image/png" href="<?=BASE_URL?>/assets/logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -222,7 +222,7 @@ body{font-family:'Plus Jakarta Sans',-apple-system,'Segoe UI',Helvetica,Arial,sa
 <div class="brand-inner">
 <div class="b-top anim" style="animation-delay:.05s"><img src="<?=BASE_URL?>/assets/logo-mark.png" alt="USC"><span>PT.United Steel Center Indonesia</span></div>
 <div class="b-mid">
-<div class="kicker anim" style="animation-delay:.1s"><i></i><span>Sistem Invitation</span></div>
+<div class="kicker anim" style="animation-delay:.1s"><i></i><span>USC Click Event</span></div>
 <h2 class="anim" style="animation-delay:.2s">Pengelolaan Undangan<br>Acara yang <em>Terpadu.</em></h2>
 <p class="anim" style="animation-delay:.3s">Sistem resmi untuk menyusun daftar undangan, mengirimkan e-ticket QR kepada peserta, serta memantau kehadiran dan pembagian souvenir dalam satu platform.</p>
 <div class="feats anim" style="animation-delay:.4s">
@@ -259,8 +259,8 @@ body{font-family:'Plus Jakarta Sans',-apple-system,'Segoe UI',Helvetica,Arial,sa
 <div class="formbox">
 <svg class="illus anim" style="animation-delay:.05s" viewBox="0 0 120 100" fill="none" aria-hidden="true"><path d="M14 58c-6-22 8-44 34-46 22-2 30-6 48 4 18 10 26 34 12 50-14 15-38 16-58 12-16-3-30-4-36-20z" fill="#daf6ca"/><rect x="34" y="34" width="52" height="42" rx="6" fill="#43a320"/><path d="M34 42l26 18 26-18" stroke="#daf6ca" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/><rect x="43" y="24" width="34" height="30" rx="4" fill="#f0fcea" stroke="#43a320" stroke-width="2.6"/><circle cx="60" cy="35" r="4.4" stroke="#43a320" stroke-width="2.4"/><path d="M51 48c1-5 4-7 9-7s8 2 9 7" stroke="#43a320" stroke-width="2.4" stroke-linecap="round"/><path d="M92 26l4-4M96 34h5M90 19l1-5" stroke="#43a320" stroke-width="2.4" stroke-linecap="round"/></svg>
 <div class="eyebrow anim" style="animation-delay:.12s">Selamat datang di</div>
-<h1 class="anim" style="animation-delay:.18s">Sistem Invitation</h1>
-<p class="sub anim" style="animation-delay:.24s">Masuk menggunakan akun administrator untuk mengelola undangan, peserta, dan kehadiran acara.</p>
+<h1 class="anim" style="animation-delay:.18s">USC Click Event</h1>
+<p class="sub anim" style="animation-delay:.24s">Masuk menggunakan akun Anda untuk mengelola undangan, peserta, dan kehadiran acara.</p>
 <div id="loginToast" role="status" aria-live="polite"></div>
 <div class="card anim" style="animation-delay:.3s">
 <?php if($m=flash('error')):?><div class="alert-err"><?=$m?></div><?php endif;?>
@@ -276,7 +276,7 @@ body{font-family:'Plus Jakarta Sans',-apple-system,'Segoe UI',Helvetica,Arial,sa
 </div></div>
 <button class="btn-submit" type="submit"><span class="spin"></span><svg class="ok" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="5 12.5 10 17.5 19 7"/></svg><span class="lbl">Masuk</span><svg class="arr" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="12" x2="19" y2="12"/><polyline points="13 6 19 12 13 18"/></svg></button>
 </form>
-<div class="foot">Akses terbatas untuk administrator yang berwenang.</div>
+<div class="foot">Akses terbatas untuk pengguna yang berwenang.</div>
 </div>
 </div>
 </section>

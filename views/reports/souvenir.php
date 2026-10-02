@@ -56,7 +56,7 @@
  <div class="rt-row">
   <div class="rt-field rt-event"><label class="rt-label" for="eventSel">Tampilkan</label><div class="select-wrap"><select id="eventSel" class="form-select"><option value="0">Semua (posisi stok gudang)</option><?php foreach($events as $e):?><option value="<?=$e['id']?>" <?=$event==$e['id']?'selected':''?>>Event: <?=e($e['event_name'])?> — <?=dmy($e['event_date'])?></option><?php endforeach;?></select><i class="bi bi-chevron-down select-arrow"></i></div></div>
  </div>
- <div class="rt-hint"><i class="bi bi-info-circle"></i><span><?=$event?'Menampilkan alokasi souvenir untuk event ini dan jumlah yang sudah diambil peserta.':'Hitungan stok: <strong>Tersedia = Stok Awal − Booked Event</strong> · <strong>Sisa Event = Booked Event − Sudah Diambil</strong> · <strong>Stok Akhir = Tersedia + Sisa Event</strong>. Booked Event dihitung dari event aktif (DRAFT/PUBLISHED); untuk event yang sudah selesai hanya yang sudah diambil.'?> Event berstatus DRAFT tidak muncul di pilihan.</span></div>
+ <div class="rt-hint"><i class="bi bi-info-circle"></i><span><?=$event?'Menampilkan alokasi souvenir untuk event ini dan jumlah yang sudah diambil peserta.':'Hitungan stok: <strong>Tersedia = Stok Awal − Booked Event</strong> · <strong>Sisa Event = Booked Event − Sudah Diambil</strong> · <strong>Stok Akhir = Tersedia + Sisa Event</strong>. Dihitung dari event aktif (DRAFT/PUBLISHED); event yang sudah selesai atau lewat tanggalnya tidak ikut dihitung.'?> Event berstatus DRAFT tidak muncul di pilihan.</span></div>
 </div>
 
 

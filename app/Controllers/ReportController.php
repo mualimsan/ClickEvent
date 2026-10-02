@@ -82,8 +82,9 @@ final class ReportController {
  private static function stockRows(\PDO $db,int $event):array{
   $claimedPerEvent="SELECT st.souvenir_id,ii.event_id,SUM(st.quantity) claimed FROM souvenir_transactions st JOIN invitations ii ON ii.id=st.invitation_id GROUP BY st.souvenir_id,ii.event_id";
   if(!$event){
-   // Rincian per event. Booked = alokasi event aktif (DRAFT/PUBLISHED); untuk event CLOSED/CANCELLED
-   // hanya yang benar-benar diambil (sisa alokasinya sudah dilepas). Sisa Event = Booked - Sudah Diambil.
+   // Rincian per event aktif (DRAFT/PUBLISHED). Event yang sudah selesai (CLOSED/CANCELLED, termasuk yang
+   // otomatis CLOSED karena tanggalnya lewat) tidak dihitung lagi, sehingga Stok Awal mengikuti isi gudang.
+   // Booked = alokasi event aktif; Sisa Event = Booked - Sudah Diambil.
    $evs=[];foreach($db->query("SELECT id,event_name,status,event_date FROM events") as $e)$evs[(int)$e['id']]=$e;
    $pairs=[];
    foreach($db->query("SELECT souvenir_id,event_id,quantity_allocated FROM event_souvenirs") as $x)$pairs[$x['souvenir_id'].'-'.$x['event_id']]=['sid'=>(int)$x['souvenir_id'],'eid'=>(int)$x['event_id'],'alloc'=>(int)$x['quantity_allocated'],'claimed'=>0];
@@ -92,7 +93,7 @@ final class ReportController {
    $detail=[];
    foreach($pairs as $x){
     $ev=$evs[$x['eid']]??null;if(!$ev)continue;$active=in_array($ev['status'],['DRAFT','PUBLISHED'],true);
-    $booked=$active?max($x['alloc'],$x['claimed']):$x['claimed'];if($booked<=0)continue;
+    if(!$active)continue;$booked=max($x['alloc'],$x['claimed']);if($booked<=0)continue;
     $detail[$x['sid']][]=['event'=>$ev['event_name'],'status'=>$ev['status'],'booked'=>$booked,'claimed'=>$x['claimed'],'sisa'=>$booked-$x['claimed']];
    }
    $rows=$db->query("SELECT s.id,s.code,s.name,s.status,s.stock,COALESCE(tk.qty,0) diambil,COALESCE(rs.alloc,0) dialokasikan,COALESCE(rs.qty,0) dipesan
@@ -103,7 +104,8 @@ final class ReportController {
    return array_map(function($r)use($detail){
     // Stok Awal = Sisa Event + Sudah Diambil + Tersedia;  Tersedia = Stok Awal - Booked Event;  Stok Akhir = Tersedia + Sisa Event (= stok fisik)
     $det=$detail[(int)$r['id']]??[];
-    $stock=(int)$r['stock'];$diambil=(int)$r['diambil'];$stokAwal=$stock+$diambil;
+    // Sudah Diambil & Stok Awal hanya dari event aktif: Stok Awal = stok gudang + yang sudah diambil di event aktif.
+    $stock=(int)$r['stock'];$diambil=array_sum(array_column($det,'claimed'));$stokAwal=$stock+$diambil;
     $sisaEvent=array_sum(array_column($det,'sisa'));$booked=$sisaEvent+$diambil;$tersedia=$stokAwal-$booked;$stokAkhir=$tersedia+$sisaEvent;
     $kondisi=$stokAkhir<=0?'Habis':($tersedia<0?'Kurang':($stokAkhir<5||$tersedia<5?'Menipis':'Aman'));
     return ['code'=>$r['code'],'name'=>$r['name'],'status'=>$r['status'],'stok_awal'=>$stokAwal,'booked'=>$booked,'tersedia'=>$tersedia,'diambil'=>$diambil,'sisa_event'=>$sisaEvent,'stok_akhir'=>$stokAkhir,'stock'=>$stock,'kondisi'=>$kondisi,

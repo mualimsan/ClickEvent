@@ -3,7 +3,7 @@
 <div class="p-4 text-center">
 <div style="width:52px;height:52px;border-radius:50%;background:#fdeceb;color:#c0392b;display:flex;align-items:center;justify-content:center;font-size:24px;margin:0 auto 16px;"><i class="bi bi-box-arrow-right"></i></div>
 <h5 style="font-weight:700;color:#0d1f17;margin-bottom:6px;">Keluar dari sistem?</h5>
-<p style="font-size:13.5px;color:#6b7570;margin-bottom:22px;">Anda perlu login kembali untuk mengakses Sistem Event.</p>
+<p style="font-size:13.5px;color:#6b7570;margin-bottom:22px;">Anda perlu login kembali untuk mengakses USC Click Event.</p>
 <div class="d-flex gap-2 justify-content-center">
 <button type="button" class="btn-outline-brand" data-bs-dismiss="modal" style="flex:1;justify-content:center;">Batal</button>
 <a href="<?=BASE_URL?>/logout" style="flex:1;background:#c0392b;border:0;color:#fff;font-weight:600;border-radius:8px;padding:9px 17px;font-size:13.5px;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:6px;transition:background .15s;" onmouseover="this.style.background='#a3372b'" onmouseout="this.style.background='#c0392b'">Ya, Keluar</a>

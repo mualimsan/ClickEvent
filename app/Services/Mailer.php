@@ -120,7 +120,7 @@ Telp: (62-267) 440701-09 &nbsp;|&nbsp; Fax: (62-267) 440130
 &nbsp;Telp: (62-21) 8980771
 </td>
 </tr></table>
-<p style="margin:16px 0 0;font-size:11px;color:#c1c7cd;text-align:center;">Email ini dikirim otomatis oleh sistem Event Attendance. Mohon tidak membalas email ini.</p>
+<p style="margin:16px 0 0;font-size:11px;color:#c1c7cd;text-align:center;">Email ini dikirim otomatis oleh sistem USC Click Event. Mohon tidak membalas email ini.</p>
 </td></tr>
 </table>
 </td></tr>

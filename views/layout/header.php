@@ -10,7 +10,7 @@ $__pageLabels=[
 ];
 $__pageTitle=$__pageLabels[$__uri]??null;
 if($__pageTitle===null){foreach($__pageLabels as $__prefix=>$__label){if(str_starts_with($__uri,$__prefix.'/')){$__pageTitle=$__label;break;}}}
-?><!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title><?=e($__pageTitle?($__pageTitle.' — Sistem Event'):env('APP_NAME','Event Attendance'))?></title>
+?><!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title><?=e($__pageTitle?($__pageTitle.' — USC Click Event'):'USC Click Event')?></title>
 <link rel="icon" type="image/png" href="<?=BASE_URL?>/assets/logo.png">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
@@ -292,9 +292,9 @@ body{background:#f4f7f7;font-family:var(--font-main);color:var(--ink);letter-spa
   'Laporan'=>[['/reports/attendance','Laporan Kehadiran','bi-clipboard-data','orange'],['/reports/souvenir','Laporan Souvenir','bi-file-earmark-bar-graph','red']],
   'Pengaturan'=>[['/users','Pengguna','bi-person-gear','blue']],
  ];
- // Operator hanya melihat menu Scanner & Laporan.
- if(!\App\Auth::isAdmin()){unset($navGroups['Menu Utama'],$navGroups['Pengaturan']);if(\App\Auth::user()['role']!=='EVENT_OPERATOR')unset($navGroups['Scanner']);}
-?><div class="app-shell"><aside class="sidebar" id="mainSidebar"><div class="brand"><div class="mark"><img src="<?=BASE_URL?>/assets/logo.png" alt="USC" onerror="this.parentElement.style.display='none'"></div><div class="txt">Sistem Event</div><button type="button" class="sb-close" onclick="toggleSidebar()" aria-label="Tutup menu"><i class="bi bi-x-lg"></i></button></div>
+ // Operator melihat Dashboard, Scanner & Laporan.
+ if(!\App\Auth::isAdmin()){$navGroups['Menu Utama']=[['/dashboard','Dashboard','bi-grid-1x2','blue']];unset($navGroups['Pengaturan']);if(\App\Auth::user()['role']!=='EVENT_OPERATOR')unset($navGroups['Scanner']);}
+?><div class="app-shell"><aside class="sidebar" id="mainSidebar"><div class="brand"><div class="mark"><img src="<?=BASE_URL?>/assets/logo.png" alt="USC" onerror="this.parentElement.style.display='none'"></div><div class="txt">USC Click Event</div><button type="button" class="sb-close" onclick="toggleSidebar()" aria-label="Tutup menu"><i class="bi bi-x-lg"></i></button></div>
 <nav><?php foreach($navGroups as $groupLabel=>$items):?><div class="nav-label"><?=e($groupLabel)?></div><?php foreach($items as [$href,$label,$icon,$color]):$isActive=$uri===$href||str_starts_with($uri,$href.'/');?><a href="<?=BASE_URL.$href?>" class="<?=$isActive?'active':''?> nav-<?=$color?>" title="<?=e($label)?>"><i class="bi <?=$icon?>"></i><span><?=$label?></span></a><?php endforeach;endforeach;?></nav>
 </aside><div class="sb-backdrop" id="sbBackdrop" onclick="toggleSidebar(false)"></div>
 <script>
@@ -325,7 +325,7 @@ document.querySelectorAll('#mainSidebar nav a').forEach(a=>a.addEventListener('c
 <main class="main">
 <?php $u=\App\Auth::user();?>
 <div class="topbar">
-<div class="tb-left"><button type="button" class="tb-burger" onclick="toggleSidebar()" aria-label="Toggle menu"><i class="bi bi-list"></i></button><span class="tb-org">PT. United Steel Center Indonesia</span><span class="tb-brand">Sistem Event</span></div>
+<div class="tb-left"><button type="button" class="tb-burger" onclick="toggleSidebar()" aria-label="Toggle menu"><i class="bi bi-list"></i></button><span class="tb-org">PT. United Steel Center Indonesia</span><span class="tb-brand">USC Click Event</span></div>
 <div class="dropdown">
 <button type="button" class="user-chip" data-bs-toggle="dropdown" aria-expanded="false"><span class="avatar"><?=e(mb_strtoupper(mb_substr($u['name'],0,1)))?></span><span class="u-info"><span class="u-name"><?=e($u['name'])?></span><span class="u-role"><?=e(\App\Auth::roleLabel($u['role']))?></span></span><i class="bi bi-chevron-down"></i></button>
 <ul class="dropdown-menu dropdown-menu-end">
