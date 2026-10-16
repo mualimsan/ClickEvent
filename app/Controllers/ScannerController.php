@@ -38,7 +38,9 @@ final class ScannerController {
   if(!$i){echo json_encode(['ok'=>false,'message'=>'Kode QR tidak terdaftar pada event ini.','note'=>'Pastikan peserta menunjukkan undangan untuk event yang benar.']);return;}
   $s=$db->prepare("SELECT id,checkin_at FROM attendances WHERE invitation_id=?");$s->execute([$i['id']]);if($a=$s->fetch()){echo json_encode(['ok'=>false,'already'=>true,'message'=>'Kehadiran peserta telah tercatat pada '.date('d-m-Y',strtotime($a['checkin_at'])).' pukul '.date('H:i:s',strtotime($a['checkin_at'])).'.','note'=>'Pemindaian ulang tidak diperlukan.','employee'=>$i['name'],'nik'=>$i['nik'],'department'=>$i['department']]);return;}
   try{$db->prepare("INSERT INTO attendances(invitation_id,operator_user_id,device_name) VALUES(?,?,?)")->execute([$i['id'],Auth::user()['id'],gethostname()]);Audit::log('CHECKIN','INVITATION',(int)$i['id'],$i['name']);echo json_encode(['ok'=>true,'message'=>'Kehadiran peserta berhasil dicatat pada '.date('d-m-Y').' pukul '.date('H:i:s').'.','employee'=>$i['name'],'nik'=>$i['nik'],'department'=>$i['department']]);}
-  catch(\Throwable $e){echo json_encode(['ok'=>false,'message'=>'Check-in tidak dapat diproses.','note'=>'Silakan pindai ulang kode QR.']);}
+  catch(\Throwable $e){
+   if($e instanceof \PDOException&&$e->getCode()==='23000'){echo json_encode(['ok'=>false,'already'=>true,'message'=>'Kehadiran peserta baru saja dicatat oleh operator lain.','note'=>'Pemindaian ulang tidak diperlukan.','employee'=>$i['name'],'nik'=>$i['nik'],'department'=>$i['department']]);return;}
+   echo json_encode(['ok'=>false,'message'=>'Check-in tidak dapat diproses.','note'=>'Silakan pindai ulang kode QR.']);}
  }
  public static function souvenirApi():void{
   Auth::requireRole(['ADMIN','EVENT_OPERATOR']);header('Content-Type: application/json');
@@ -57,8 +59,14 @@ final class ScannerController {
   $db->beginTransaction();
   try{
    $s=$db->prepare("SELECT stock FROM souvenirs WHERE id=? FOR UPDATE");$s->execute([$sid]);$current=(int)$s->fetchColumn();if($current<1)throw new \RuntimeException('Stock habis');
+   // Cek ulang alokasi setelah baris souvenir dikunci: scan bersamaan dari beberapa operator antre di sini,
+   // jadi jumlah yang diserahkan tidak bisa melebihi alokasi event.
+   $s=$db->prepare("SELECT COALESCE(SUM(st.quantity),0) FROM souvenir_transactions st JOIN invitations ii ON ii.id=st.invitation_id WHERE st.souvenir_id=? AND ii.event_id=?");$s->execute([$sid,$eventId]);
+   if((int)$s->fetchColumn()>=(int)$a['quantity_allocated']){$db->rollBack();echo json_encode(['ok'=>false,'message'=>'Alokasi souvenir untuk event ini telah habis.','note'=>'Hubungi admin untuk menambah alokasi.']);return;}
    $db->prepare("INSERT INTO souvenir_transactions(invitation_id,souvenir_id,operator_user_id,device_name) VALUES(?,?,?,?)")->execute([$i['id'],$sid,Auth::user()['id'],gethostname()]);
    $db->prepare("UPDATE souvenirs SET stock=stock-1,updated_at=NOW() WHERE id=?")->execute([$sid]);$db->commit();Audit::log('SOUVENIR_CLAIM','INVITATION',(int)$i['id'],$i['name']);$n=$db->prepare("SELECT name FROM souvenirs WHERE id=?");$n->execute([$sid]);echo json_encode(['ok'=>true,'message'=>'Silakan serahkan 1 '.$n->fetchColumn().' kepada peserta.','employee'=>$i['name'],'nik'=>$i['nik'],'department'=>$i['department']]);
-  }catch(\Throwable $e){if($db->inTransaction())$db->rollBack();echo json_encode(['ok'=>false,'message'=>'Transaksi tidak dapat diproses.','note'=>'Silakan pindai ulang kode QR.']);}
+  }catch(\Throwable $e){if($db->inTransaction())$db->rollBack();
+   if($e instanceof \PDOException&&$e->getCode()==='23000'){echo json_encode(['ok'=>false,'already'=>true,'message'=>'Souvenir ini baru saja diserahkan oleh operator lain.','note'=>'Souvenir tidak dapat diberikan kembali.','employee'=>$i['name'],'nik'=>$i['nik'],'department'=>$i['department']]);return;}
+   echo json_encode(['ok'=>false,'message'=>'Transaksi tidak dapat diproses.','note'=>'Silakan pindai ulang kode QR.']);}
  }
 }

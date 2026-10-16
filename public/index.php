@@ -6,7 +6,7 @@ use App\Controllers\AuthController;use App\Controllers\DashboardController;use A
 $uri=parse_url($_SERVER['REQUEST_URI'],PHP_URL_PATH)??'/';$base=rtrim(dirname($_SERVER['SCRIPT_NAME']),'/');if($base&&str_starts_with($uri,$base))$uri=substr($uri,strlen($base));$uri='/'.trim($uri,'/');
 if($uri===''||$uri==='/')redirect(\App\Auth::check()?\App\Auth::home():'/login');
 elseif($uri==='/login')AuthController::login();elseif($uri==='/logout')AuthController::logout();
-elseif($uri==='/dashboard')DashboardController::index();elseif(preg_match('#^/dashboard/export/([a-z]+)$#',$uri,$m))DashboardController::exportCard($m[1]);
+elseif($uri==='/dashboard')DashboardController::index();elseif(preg_match('#^/dashboard/export/([a-z]+)$#',$uri,$m))DashboardController::exportCard($m[1]);elseif(preg_match('#^/dashboard/card/([a-z]+)$#',$uri,$m))DashboardController::cardData($m[1]);
 elseif($uri==='/profile')ProfileController::index();
 elseif($uri==='/users')UserController::index();elseif($uri==='/users/create')UserController::form();elseif(preg_match('#^/users/(\d+)/edit$#',$uri,$m))UserController::form((int)$m[1]);elseif(preg_match('#^/users/(\d+)/delete$#',$uri,$m))UserController::delete((int)$m[1]);
 elseif($uri==='/employees')EmployeeController::index();elseif($uri==='/employees/create')EmployeeController::form();elseif(preg_match('#^/employees/(\d+)/edit$#',$uri,$m))EmployeeController::form((int)$m[1]);elseif(preg_match('#^/employees/(\d+)/delete$#',$uri,$m))EmployeeController::delete((int)$m[1]);elseif($uri==='/employees/bulk-delete')EmployeeController::bulkDelete();elseif($uri==='/employees/import')EmployeeController::import();elseif($uri==='/employees/import/template')EmployeeController::importTemplate();

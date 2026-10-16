@@ -14,9 +14,12 @@
  </div>
  <div class="rt-hint"><i class="bi bi-info-circle"></i>Event berstatus DRAFT tidak ditampilkan di laporan.</div>
 </div>
-<style>.souv-taken{display:inline-flex;align-items:center;gap:6px;color:var(--accent);font-weight:600;font-size:13px;}.souv-taken i{font-size:13px;}</style>
+<style>
+.pic-name{display:inline-flex;align-items:center;gap:6px;font-weight:600;color:var(--forest);}
+.pic-name i{color:var(--accent);}
+.souv-taken{display:inline-flex;align-items:center;gap:6px;color:var(--accent);font-weight:600;font-size:13px;}.souv-taken i{font-size:13px;}</style>
 <div class="report-summary" id="summary"></div>
-<div class="data-card"><div class="table-responsive"><table class="data-table text-nowrap"><thead><tr><th>No</th><th>NIK</th><th>Nama</th><th>Section</th><th>Departemen</th><th>Status Email</th><th>Status Kehadiran</th><th>Waktu Check-in</th><th>Souvenir Diambil</th></tr></thead><tbody id="rows"></tbody></table></div><div id="attPagination" class="d-flex align-items-center gap-2 p-3"></div></div>
+<div class="data-card"><div class="table-responsive"><table class="data-table text-nowrap"><thead><tr><th>No</th><th>NIK</th><th>Nama</th><th>Section</th><th>Departemen</th><th>Status Email</th><th>Status Kehadiran</th><th>Waktu Check-in</th><th>PIC Check-in</th><th>Souvenir Diambil</th></tr></thead><tbody id="rows"></tbody></table></div><div id="attPagination" class="d-flex align-items-center gap-2 p-3"></div></div>
 <script>
 const EVENT_ID=<?=(int)$event?>;
 const EVENT_NAME=<?=json_encode($event?(array_values(array_filter($events,fn($x)=>(int)$x['id']===(int)$event))[0]['event_name']??'Event terpilih'):'Belum ada event')?>;
@@ -56,7 +59,7 @@ function renderAttPage(){
  if(attPage>totalPages)attPage=totalPages;
  const start=(attPage-1)*PAGE_SIZE;
  const pageRows=shown.slice(start,start+PAGE_SIZE);
- document.getElementById('rows').innerHTML=pageRows.length?pageRows.map((x,i)=>'<tr><td>'+(start+i+1)+'</td><td>'+esc(x.nik)+'</td><td class="fw-semibold">'+esc(x.name)+'</td><td>'+esc(x.section)+'</td><td>'+esc(x.department)+'</td><td>'+esc(x.email_status==='PENDING'?'BELUM DIKIRIM':x.email_status)+'</td><td>'+(x.attended?'<span class="badge-pill" style="background:#1f7a4c">HADIR</span>':'<span class="badge-pill" style="background:#6b7570">BELUM HADIR</span>')+'</td><td>'+dtCell(x.checkin_at)+'</td><td>'+(x.souvenirs?'<span class="souv-taken"><i class="bi bi-gift"></i>'+esc(x.souvenirs)+'</span>':'<span class="text-muted">-</span>')+'</td></tr>').join(''):'<tr><td colspan="9" class="text-muted text-center py-4">Tidak ada data yang cocok dengan filter.</td></tr>';
+ document.getElementById('rows').innerHTML=pageRows.length?pageRows.map((x,i)=>'<tr><td>'+(start+i+1)+'</td><td>'+esc(x.nik)+'</td><td class="fw-semibold">'+esc(x.name)+'</td><td>'+esc(x.section)+'</td><td>'+esc(x.department)+'</td><td>'+esc(x.email_status==='PENDING'?'BELUM DIKIRIM':x.email_status)+'</td><td>'+(x.attended?'<span class="badge-pill" style="background:#1f7a4c">HADIR</span>':'<span class="badge-pill" style="background:#6b7570">BELUM HADIR</span>')+'</td><td>'+dtCell(x.checkin_at)+'</td><td>'+(x.checkin_by?'<span class="pic-name"><i class="bi bi-person-badge"></i>'+esc(x.checkin_by)+'</span>':'<span class="text-muted">-</span>')+'</td><td>'+(x.souvenirs?'<span class="souv-taken"><i class="bi bi-gift"></i>'+esc(x.souvenirs)+'</span>':'<span class="text-muted">-</span>')+'</td></tr>').join(''):'<tr><td colspan="10" class="text-muted text-center py-4">Tidak ada data yang cocok dengan filter.</td></tr>';
  renderPagination(document.getElementById('attPagination'),totalPages,attPage,p=>{attPage=p;renderAttPage();},shown.length);
  renderSummary();
 }

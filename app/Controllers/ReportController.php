@@ -29,7 +29,7 @@ final class ReportController {
  }
  private static function attendanceRows(\PDO $db,int $event):array{
   // souvenirs = daftar souvenir yang sudah diambil peserta ini (mis. "Tumbler, Tas (2)")
-  $sql="SELECT i.id,ev.event_code,ev.event_name,ev.event_date,e.nik,e.name,e.section,e.department,e.division,e.email,i.email_status,a.checkin_at,
+  $sql="SELECT i.id,ev.event_code,ev.event_name,ev.event_date,e.nik,e.name,e.section,e.department,e.division,e.email,i.email_status,a.checkin_at,(SELECT u.name FROM users u WHERE u.id=a.operator_user_id) checkin_by,
    (SELECT GROUP_CONCAT(CONCAT(s.name,IF(st.quantity>1,CONCAT(' (',st.quantity,')'),'')) ORDER BY st.collected_at,st.id SEPARATOR ', ') FROM souvenir_transactions st JOIN souvenirs s ON s.id=st.souvenir_id WHERE st.invitation_id=i.id) souvenirs,
    (SELECT MAX(st.collected_at) FROM souvenir_transactions st WHERE st.invitation_id=i.id) souvenir_at
    FROM invitations i JOIN events ev ON ev.id=i.event_id JOIN employees e ON e.id=i.employee_id LEFT JOIN attendances a ON a.invitation_id=i.id WHERE ev.status!='DRAFT'";$p=[];
@@ -37,7 +37,7 @@ final class ReportController {
   $sql.=" ORDER BY ev.event_date ASC,e.name ASC,i.id ASC";$s=$db->prepare($sql);$s->execute($p);return $s->fetchAll();
  }
  private static function attendanceJson(array $r):array{
-  return ['id'=>(int)$r['id'],'event_code'=>$r['event_code'],'event_name'=>$r['event_name'],'event_date'=>$r['event_date'],'nik'=>$r['nik'],'name'=>$r['name'],'section'=>$r['section'],'department'=>$r['department'],'division'=>$r['division'],'email'=>$r['email'],'email_status'=>$r['email_status'],'attended'=>$r['checkin_at']!==null,'checkin_at'=>$r['checkin_at'],'souvenirs'=>$r['souvenirs']??null,'souvenir_at'=>$r['souvenir_at']??null];
+  return ['id'=>(int)$r['id'],'event_code'=>$r['event_code'],'event_name'=>$r['event_name'],'event_date'=>$r['event_date'],'nik'=>$r['nik'],'name'=>$r['name'],'section'=>$r['section'],'department'=>$r['department'],'division'=>$r['division'],'email'=>$r['email'],'email_status'=>$r['email_status'],'attended'=>$r['checkin_at']!==null,'checkin_at'=>$r['checkin_at'],'checkin_by'=>$r['checkin_by']??null,'souvenirs'=>$r['souvenirs']??null,'souvenir_at'=>$r['souvenir_at']??null];
  }
 
  // ---------- Souvenir ----------
@@ -63,9 +63,9 @@ final class ReportController {
  // Peserta hadir + rincian per souvenir: take[souvenir_id] = ['q'=>jumlah,'at'=>waktu ambil terakhir].
  private static function pesertaRows(\PDO $db,int $event):array{
   $take=[];
-  $s=$db->prepare("SELECT st.invitation_id,st.souvenir_id,SUM(st.quantity) q,MAX(st.collected_at) at FROM souvenir_transactions st JOIN invitations i ON i.id=st.invitation_id WHERE i.event_id=? GROUP BY st.invitation_id,st.souvenir_id");
+  $s=$db->prepare("SELECT st.invitation_id,st.souvenir_id,SUM(st.quantity) q,MAX(st.collected_at) at,GROUP_CONCAT(DISTINCT u.name SEPARATOR ', ') pic FROM souvenir_transactions st JOIN invitations i ON i.id=st.invitation_id LEFT JOIN users u ON u.id=st.operator_user_id WHERE i.event_id=? GROUP BY st.invitation_id,st.souvenir_id");
   $s->execute([$event]);
-  foreach($s as $t)$take[(int)$t['invitation_id']][(int)$t['souvenir_id']]=['q'=>(int)$t['q'],'at'=>$t['at']];
+  foreach($s as $t)$take[(int)$t['invitation_id']][(int)$t['souvenir_id']]=['q'=>(int)$t['q'],'at'=>$t['at'],'by'=>$t['pic']];
   return array_map(fn($r)=>self::attendanceJson($r)+['take'=>$take[(int)$r['id']]??[]],self::hadirRows($db,$event));
  }
  // Status pengambilan terhadap souvenir yang ditampilkan: semua diambil / sebagian / belum sama sekali.
@@ -197,13 +197,14 @@ final class ReportController {
   if($_SERVER['REQUEST_METHOD']!=='POST'&&in_array($status,['hadir','belum'],true))$rows=array_values(array_filter($rows,fn($x)=>($x['checkin_at']!==null)===($status==='hadir')));
   $parts=$status==='hadir'?['Status: Hadir']:($status==='belum'?['Status: Belum Hadir']:[]);
   // Baris & urutan sama persis dengan tabel di halaman; kolom Excel tetap lengkap (format lama) + Souvenir Diambil.
-  $headers=['No','Kode Event','Event','Tanggal','NIK','Nama','Section','Departemen','Divisi','Email','Status Email','Status Kehadiran','Waktu Check-in','Souvenir Diambil'];
+  $headers=['No','Kode Event','Event','Tanggal','NIK','Nama','Section','Departemen','Divisi','Email','Status Email','Status Kehadiran','Waktu Check-in','PIC Check-in','Souvenir Diambil'];
   [$ss,$sheet,$headerRow,$lastCol]=ExcelExport::newSheet('Laporan Kehadiran',self::subtitle($db,$event,$parts,count($rows)),$headers);
   $r=$headerRow+1;
   foreach($rows as $i=>$row){
    $c=1;$sheet->setCellValue([$c++,$r],$i+1);
    self::personCells($sheet,$c,$r,$row);
    self::attendanceCells($sheet,$c,$r,$row,true);
+   $sheet->setCellValueExplicit([$c++,$r],(string)($row['checkin_by']??'')?:'-',DataType::TYPE_STRING);
    $sheet->setCellValueExplicit([$c++,$r],(string)($row['souvenirs']??'-')?:'-',DataType::TYPE_STRING);
    $r++;
   }
@@ -220,7 +221,7 @@ final class ReportController {
    if($sid)$items=array_values(array_filter($items,fn($it)=>$it['id']===$sid));
    $parts=['Peserta hadir'];if($sid&&$items)$parts[]='Souvenir: '.$items[0]['name'];
    $headers=['No','NIK','Nama','Section','Departemen','Waktu Check-in','Status Pengambilan'];
-   foreach($items as $it){$headers[]=$it['name'].' (Jumlah)';$headers[]=$it['name'].' (Waktu Ambil)';}
+   foreach($items as $it){$headers[]=$it['name'].' (Jumlah)';$headers[]=$it['name'].' (Waktu Ambil)';$headers[]='Nama PIC';}
    [$ss,$sheet,$headerRow,$lastCol]=ExcelExport::newSheet('Status Pengambilan Souvenir',self::subtitle($db,$event,$parts,count($rows)),$headers);
    $r=$headerRow+1;
    foreach($rows as $i=>$row){
@@ -233,6 +234,7 @@ final class ReportController {
      $t=$row['take'][$it['id']]??null;
      $sheet->setCellValue([$c++,$r],$t?$t['q']:'-');
      if($t)self::dateCell($sheet,$c,$r,$t['at'],'dd-mm-yyyy hh:mm:ss');else $sheet->setCellValue([$c,$r],'-');$c++;
+     $sheet->setCellValueExplicit([$c++,$r],(string)($t['by']??'')?:'-',DataType::TYPE_STRING);
     }
     $r++;
    }

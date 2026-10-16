@@ -44,6 +44,8 @@
 .ps-table .g-start{border-left:1px solid #eef1ef;}
 .ps-table td.ps-q{text-align:center;font-weight:700;color:var(--forest);}
 .ps-table th.ps-q{text-align:center;}
+.pic-name{display:inline-flex;align-items:center;gap:6px;font-weight:600;color:var(--forest);}
+.pic-name i{color:var(--accent);}
 .kond-Sebagian{background:#eaf2fb;color:#1d5fb7;}
 .souv-dd .souv-dd-ico{position:absolute;left:13px;top:50%;transform:translateY(-50%);color:var(--accent);font-size:15px;pointer-events:none;z-index:1;}
 .souv-dd select{padding-left:38px!important;font-weight:600;}
@@ -138,15 +140,15 @@ function psRender(){
  psShown=psData.filter(x=>!q||[x.nik,x.name,x.department,x.souvenirs].some(v=>(v||'').toString().toLowerCase().includes(q)));
  const rs=items.length?' rowspan="2"':'';
  document.getElementById('psHead').innerHTML='<tr><th'+rs+'>No</th><th'+rs+'>NIK</th><th'+rs+'>Nama</th><th'+rs+'>Departemen</th><th'+rs+'>Waktu Check-in</th><th'+rs+'>Status</th>'
-  +items.map(it=>'<th colspan="2" class="ps-grp"><i class="bi bi-gift"></i>'+esc(it.name)+' <span class="ps-total" title="Total sudah diambil">'+psTaken(it.id)+'</span></th>').join('')+'</tr>'
-  +(items.length?'<tr class="ps-sub">'+items.map(()=>'<th class="ps-q g-start">Jumlah</th><th>Waktu Ambil</th>').join('')+'</tr>':'');
+  +items.map(it=>'<th colspan="3" class="ps-grp"><i class="bi bi-gift"></i>'+esc(it.name)+' <span class="ps-total" title="Total sudah diambil">'+psTaken(it.id)+'</span></th>').join('')+'</tr>'
+  +(items.length?'<tr class="ps-sub">'+items.map(()=>'<th class="ps-q g-start">Jumlah</th><th>Waktu Ambil</th><th>Nama PIC</th>').join('')+'</tr>':'');
  const total=Math.max(1,Math.ceil(psShown.length/PAGE_SIZE));if(psPage>total)psPage=total;
  const start=(psPage-1)*PAGE_SIZE,rows=psShown.slice(start,start+PAGE_SIZE);
  const dash='<span class="text-muted">-</span>';
  document.getElementById('psRows').innerHTML=rows.length?rows.map((x,i)=>'<tr><td>'+(start+i+1)+'</td><td>'+esc(x.nik)+'</td><td class="fw-semibold">'+esc(x.name)+'</td><td>'+esc(x.department)+'</td><td>'+dtCell(x.checkin_at)+'</td><td>'+psStatus(x,items)+'</td>'
-  +items.map(it=>{const t=x.take&&x.take[it.id];return '<td class="ps-q g-start">'+(t?t.q:dash)+'</td><td>'+(t?dtCell(t.at):dash)+'</td>';}).join('')
+  +items.map(it=>{const t=x.take&&x.take[it.id];return '<td class="ps-q g-start">'+(t?t.q:dash)+'</td><td>'+(t?dtCell(t.at):dash)+'</td><td>'+(t&&t.by?'<span class="pic-name"><i class="bi bi-person-badge"></i>'+esc(t.by)+'</span>':dash)+'</td>';}).join('')
   +'</tr>').join('')
-  :'<tr><td colspan="'+(6+items.length*2)+'" class="text-muted text-center py-4">'+(psData.length?'Tidak ada data yang cocok dengan pencarian.':'Belum ada peserta yang check-in di event ini.')+'</td></tr>';
+  :'<tr><td colspan="'+(6+items.length*3)+'" class="text-muted text-center py-4">'+(psData.length?'Tidak ada data yang cocok dengan pencarian.':'Belum ada peserta yang check-in di event ini.')+'</td></tr>';
  renderPagination(document.getElementById('psPagination'),total,psPage,p=>{psPage=p;psRender();},psShown.length);
  const parts=[];if(psSouv&&items.length)parts.push('Souvenir: <b>'+esc(items[0].name)+'</b>');const qq=document.getElementById('psQ').value.trim();if(qq)parts.push('Cari: <b>"'+esc(qq)+'"</b>');
  document.getElementById('psSummary').innerHTML='<span>Menampilkan <b>'+psShown.length+'</b> dari <b>'+psData.length+'</b> peserta hadir</span>'+(parts.length?'<span class="rs-sep">·</span>'+parts.join('<span class="rs-sep">·</span>')+'<button type="button" class="rs-reset" id="psReset"><i class="bi bi-x-circle"></i>Reset filter</button>':'');
