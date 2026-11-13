@@ -21,15 +21,15 @@
 <h3 style="font-size:15px;font-weight:700;margin:0 0 4px;">Format Kolom</h3>
 <p style="font-size:12.5px;color:#6b7570;margin:0 0 14px;">Gunakan <strong>Download Template</strong>: kolom sudah dilengkapi dropdown dan pengecekan otomatis, jadi salah ketik langsung ditolak oleh Excel. Urutan kolom boleh berbeda, yang penting nama header-nya sama.</p>
 <div class="data-card" style="margin-bottom:18px;"><table class="spec-table"><thead><tr><th>Kolom</th><th>Keterangan</th><th>Contoh</th></tr></thead><tbody>
-<tr><td><code>nik</code></td><td>Hanya angka (0-9), maksimal 7 digit, unik</td><td>2205049</td></tr>
+<tr><td><code>nik</code></td><td>Huruf, angka, spasi, titik, atau tanda hubung, maksimal 20 karakter, unik</td><td>2205049 / BAA-2409065 / INT-NEW 001</td></tr>
 <tr><td><code>name</code></td><td>Nama lengkap, hanya huruf, maksimal 50 karakter</td><td>Contoh Nama</td></tr>
 <tr><td><code>email</code></td><td>Alamat email aktif untuk menerima undangan</td><td>nama@usc-indonesia.co.id</td></tr>
-<tr><td><code>division</code></td><td>Dropdown: pilih Division terlebih dulu</td><td>AD</td></tr>
-<tr><td><code>department</code></td><td>Dropdown menyesuaikan Division (-C Cibitung, -K Karawang)</td><td>AD-C</td></tr>
-<tr><td><code>section</code></td><td>Dropdown menyesuaikan Division, boleh diisi section lain</td><td>IT</td></tr>
+<tr><td><code>division</code> / Divisi</td><td>Sesuai data kantor</td><td>MD</td></tr>
+<tr><td><code>department</code> / Dept</td><td>Sesuai data kantor</td><td>CCC</td></tr>
+<tr><td><code>section</code></td><td>Sesuai data kantor</td><td>CCC</td></tr>
 <tr><td><code>status</code></td><td>Dropdown: ACTIVE atau INACTIVE (kosong = ACTIVE)</td><td>ACTIVE</td></tr>
 </tbody></table></div>
-<div class="info-note" style="margin-bottom:0;"><i class="bi bi-info-circle"></i><div>Saat import, setiap baris dicek ulang oleh sistem (NIK hanya angka, email valid, Department sesuai Division, NIK tidak ganda). Baris yang salah dilewati dan dilaporkan beserta nomor barisnya di Excel.</div></div>
+<div class="info-note" style="margin-bottom:0;"><i class="bi bi-info-circle"></i><div>Saat import, setiap baris dicek ulang oleh sistem (format NIK, email valid, NIK tidak ganda, Divisi/Dept/Section terisi). Baris yang salah dilewati dan dilaporkan beserta nomor barisnya di Excel.</div></div>
 </div>
 <div class="form-card" style="max-width:none">
 <h3 style="font-size:15px;font-weight:700;margin:0 0 14px;">Unggah File</h3>
@@ -45,13 +45,8 @@
 <button class="btn-brand w-100 mt-3" style="justify-content:center"><i class="bi bi-upload"></i>Import</button>
 </form>
 <hr style="border-color:#eef1ee;margin:18px 0;">
-<h3 style="font-size:13px;font-weight:700;margin:0 0 10px;">Division &amp; Department Valid</h3>
-<div class="div-chip">AD → AD-C / AD-K</div>
-<div class="div-chip">BD → BD-C / BD-K</div>
-<div class="div-chip">DPC → DPC-C / DPC-K</div>
-<div class="div-chip">FD → FD-C / FD-K</div>
-<div class="div-chip">MD → MD-C / MD-K</div>
-<div class="div-chip">HRD, GA &amp; PU → HR-C/K, GA-C/K, PU-C/K</div>
+<h3 style="font-size:13px;font-weight:700;margin:0 0 8px;">Bisa langsung pakai Excel kantor</h3>
+<p style="font-size:12.5px;color:#6b7570;margin:0;">Judul kolom <b>NIK, Nama, Divisi, Dept, Section, Email</b> dikenali otomatis. Kolom lain (No, Branch, dll.) diabaikan, dan baris tanpa NIK, nama, dan email dilewati.</p>
 </div>
 </div>
 <script>
