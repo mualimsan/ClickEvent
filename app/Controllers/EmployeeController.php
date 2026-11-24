@@ -9,6 +9,8 @@ final class EmployeeController {
  }
  // Nama karyawan: huruf (termasuk beraksen), spasi, titik, koma, tanda petik, tanda hubung, tanda kurung; 1-50 karakter.
  public const NAME_MAX=50;
+ // Nama disimpan huruf kapital di awal kata ("ACHMAD DJAOHARI" -> "Achmad Djaohari"), spasi ganda dirapikan.
+ public static function nameCase(string $v):string{return mb_convert_case(mb_strtolower(preg_replace('/\s+/u',' ',trim($v))),MB_CASE_TITLE,'UTF-8');}
  public static function validName(string $v):bool{return $v!==''&&mb_strlen($v)<=self::NAME_MAX&&(bool)preg_match("/^\\p{L}[\\p{L} .,'()\\-]*$/u",$v);}
  // NIK: karyawan tetap (angka) maupun PKL/outsourcing/internship/driver, mis. BAA-2409065, PSB-2509001, VOC-2608132, DRV.01, INT-NEW 001.
  // Spasi di tengah boleh (dirapikan jadi satu spasi), tidak boleh di awal/akhir.
@@ -26,7 +28,7 @@ final class EmployeeController {
   if($_SERVER['REQUEST_METHOD']==='POST'){verify_csrf();
    $back=$id?'/employees/'.$id.'/edit':'/employees/create';$isNew=!$id;
    $in=fn($k)=>trim((string)($_POST[$k]??''));
-   $data=[self::normNik($in('nik')),$in('name'),$in('section'),$in('department'),$in('division'),$in('email'),in_array($_POST['status']??'',['ACTIVE','INACTIVE'],true)?$_POST['status']:'ACTIVE'];
+   $data=[self::normNik($in('nik')),self::nameCase($in('name')),$in('section'),$in('department'),$in('division'),$in('email'),in_array($_POST['status']??'',['ACTIVE','INACTIVE'],true)?$_POST['status']:'ACTIVE'];
    // Gagal: tampilkan pesan & kembalikan isian form supaya tidak perlu mengetik ulang.
    $fail=function(string $msg) use($back):never{$old=$_POST;unset($old['_csrf']);$_SESSION['_old_employee']=$old;flash('error',$msg);redirect($back);};
    if(!self::validNik($data[0]))$fail('NIK hanya boleh berisi huruf, angka, spasi, titik, atau tanda hubung (maksimal 20 karakter).');
@@ -123,7 +125,7 @@ final class EmployeeController {
   try{$s=$db->prepare("INSERT INTO employees(nik,name,section,department,division,email,status) VALUES(?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE name=VALUES(name),section=VALUES(section),department=VALUES(department),division=VALUES(division),email=VALUES(email),status=VALUES(status),updated_at=NOW()");
    foreach($rows as $rowNum=>$r){
     $v=fn($k)=>trim((string)($r[$k]??''));
-    $nik=self::normNik($v('nik'));$name=$v('name');$email=$v('email');$division=$v('division');$department=$v('department');$section=$v('section');$status=strtoupper($v('status'))?:'ACTIVE';
+    $nik=self::normNik($v('nik'));$name=self::nameCase($v('name'));$email=$v('email');$division=$v('division');$department=$v('department');$section=$v('section');$status=strtoupper($v('status'))?:'ACTIVE';
     if(preg_match('/^\d+\.0+$/',$nik))$nik=substr($nik,0,strpos($nik,'.')); // angka dari Excel mis. "2205049.0"
     if($nik===''&&$name===''&&$email===''){$skipped++;continue;} // baris kosong / slot cadangan tanpa nama
     $err=null;
