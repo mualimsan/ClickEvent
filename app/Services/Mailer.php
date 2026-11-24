@@ -27,6 +27,7 @@ final class Mailer {
   $mail->Subject='Undangan - '.$event['event_name'];
   $qrBytes=QrService::pngBytes($token);
   $mail->addStringEmbeddedImage($qrBytes,'qrcode','qr.png','base64','image/png');
+  $mail->addEmbeddedImage(dirname(__DIR__,2).'/public/assets/logo-email.png','usclogo','usc.png','base64','image/png');
   $mail->Body=self::template($employee,$event);
   $mail->AltBody="Undangan: {$event['event_name']}\nTanggal: ".dmy($event['event_date'])."\nJam: ".self::hm($event['start_time']).' - '.self::hm($event['end_time']).' '.self::tz($event)."\nLokasi: {$event['location']}\n\nQR Code terlampir, mohon tunjukkan saat check-in dan pengambilan souvenir.";
   $mail->addStringAttachment($qrBytes,'QR-'.preg_replace('/[^A-Za-z0-9_-]+/','_',$event['event_name']).'-'.preg_replace('/[^A-Za-z0-9_-]+/','_',$employee['name']).'.png','base64','image/png');
@@ -61,7 +62,7 @@ final class Mailer {
 <tr><td bgcolor="#022d36" style="background:#022d36;padding:24px 28px;border-bottom:4px solid #90e365;">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
 <td width="44" valign="top" style="padding-right:14px;">
-<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="44" bgcolor="#ffffff" style="background:#ffffff;border-radius:10px;width:44px;height:44px;"><tr><td align="center" valign="middle" height="44" style="width:44px;height:44px;font-family:'Segoe UI',Arial,Helvetica,sans-serif;font-size:13px;font-weight:800;letter-spacing:0.5px;color:#167320;">USC</td></tr></table>
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="44" bgcolor="#ffffff" style="background:#ffffff;border-radius:10px;width:44px;height:44px;"><tr><td align="center" valign="middle" height="44" style="width:44px;height:44px;"><img src="cid:usclogo" alt="USC" width="34" height="34" style="display:block;border:0;outline:none;text-decoration:none;width:34px;height:34px;"></td></tr></table>
 </td>
 <td style="color:#ffffff;" valign="middle">
 <div style="font-size:12px;letter-spacing:1px;text-transform:uppercase;color:#c6ff7f;">Undangan Resmi</div>
