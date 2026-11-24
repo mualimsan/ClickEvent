@@ -36,7 +36,7 @@ $statusLabel=['SENT'=>'SENT','PENDING'=>'BELUM DIKIRIM','FAILED'=>'FAILED'];
 </div><?php endif;?>
 </div>
 <?php if(!$isPublished):?><div class="alert-soft-warn mb-3">Event ini belum berstatus <strong>PUBLISHED</strong> (status saat ini: <strong><?=$event['status']?></strong>), jadi tombol Generate QR &amp; Send Email belum tersedia dulu. Ubah status event ke PUBLISHED di halaman Edit untuk mengaktifkannya.</div><?php elseif($isAdmin && $pendingCount>0):?><div class="alert-soft-warn mb-3">Peserta baru wajib di-generate dulu sebelum tombol Send-nya bisa dipakai.</div><?php endif;?>
-<div class="mb-3 select-wrap" style="max-width:220px"><select id="invDeptFilter" class="form-select"><option value="">Semua Departemen</option><?php foreach($invDepts as $d):?><option value="<?=e($d)?>"><?=e($d)?></option><?php endforeach;?></select><i class="bi bi-chevron-down select-arrow"></i></div>
+<div class="d-flex flex-wrap gap-2 align-items-center mb-3"><input type="text" id="invSearch" class="search-input" style="max-width:260px" placeholder="Cari nama / email / status..." autocomplete="off"><div class="select-wrap" style="max-width:220px"><select id="invDeptFilter" class="form-select"><option value="">Semua Departemen</option><?php foreach($invDepts as $d):?><option value="<?=e($d)?>"><?=e($d)?></option><?php endforeach;?></select><i class="bi bi-chevron-down select-arrow"></i></div></div>
 <div class="data-card"><div class="table-responsive"><table class="data-table" id="invTable"><thead><tr><?php if($isAdmin):?><th style="width:36px"><input type="checkbox" id="invSelAll"></th><?php endif;?><th>QR</th><th>Nama</th><th>Departemen</th><th>Email</th><th>Status</th></tr></thead><tbody><?php foreach($invitations as $i):$rowReady=!empty($i['qr_generated_at']);?><tr data-dept="<?=e($i['department'])?>"><?php if($isAdmin):?><td><input type="checkbox" class="inv" value="<?=$i['id']?>"></td><?php endif;?><td><?php if($rowReady):?><img src="<?=BASE_URL?>/events/<?=$event['id']?>/invitations/<?=$i['id']?>/qr.png" loading="lazy" decoding="async" alt="QR" width="56" height="56" style="cursor:pointer;border-radius:6px;border:1px solid #e7e9e6" class="qr-thumb" data-name="<?=e($i['employee_name'])?>"><?php else:?><span class="text-muted small">Belum digenerate</span><?php endif;?></td><td class="fw-semibold"><?=e($i['employee_name'])?></td><td><?=e($i['department'])?></td><td><?=e($i['email'])?></td><td><?php if(!$rowReady):?><span class="badge-pill" style="background:#6b7570">BELUM DIGENERATE</span><?php else:?><span class="badge-pill" style="background:<?=$statusColor[$i['email_status']]??'#6b7570'?>" <?=$i['email_status']==='FAILED' && !empty($i['last_email_error'])?'title="'.e($i['last_email_error']).'"':''?>><?=$statusLabel[$i['email_status']]??$i['email_status']?><?=$i['email_status']==='FAILED'?' ⓘ':''?></span><?php endif;?></td></tr><?php endforeach;?></tbody></table></div></div>
 <div id="invPagination" class="d-flex align-items-center gap-2 mt-3"></div>
 </div>
@@ -92,10 +92,11 @@ const generateDept=document.getElementById('generateDept');
 document.querySelectorAll('.qr-thumb').forEach(img=>img.addEventListener('click',()=>{document.getElementById('qrimg').src=img.src;document.getElementById('qrname').textContent=img.dataset.name;new bootstrap.Modal(document.getElementById('qrModal')).show();}));
 const invRows=Array.from(document.querySelectorAll('#invTable tbody tr'));
 let invPage=1;
-function invMatches(){
- const dept=invDeptFilter.value;
- return invRows.filter(tr=>!dept||tr.dataset.dept===dept);
-}
+// Filter departemen dipakai juga oleh Generate QR & Send Semua (diproses per departemen di server);
+// pencarian hanya menyaring tampilan tabel & centang "pilih semua".
+const invSearch=document.getElementById('invSearch');
+function invDeptMatches(){const dept=invDeptFilter.value;return invRows.filter(tr=>!dept||tr.dataset.dept===dept);}
+function invMatches(){const q=invSearch.value.trim().toLowerCase();return invDeptMatches().filter(tr=>!q||tr.textContent.toLowerCase().includes(q));}
 function renderInvPage(){
  const matched=invMatches();
  const totalPages=Math.max(1,Math.ceil(matched.length/PAGE_SIZE));
@@ -105,8 +106,8 @@ function renderInvPage(){
  invRows.forEach(tr=>{tr.style.display=shown.has(tr)?'':'none';});
  renderPagination(document.getElementById('invPagination'),totalPages,invPage,p=>{invPage=p;renderInvPage();},matched.length);
 }
-function countSendable(){return invMatches().filter(tr=>tr.querySelector('td img')&&tr.children[tr.children.length-1].textContent.trim()!=='SENT').length;}
-function countPending(){return invMatches().filter(tr=>!tr.querySelector('td img')).length;}
+function countSendable(){return invDeptMatches().filter(tr=>tr.querySelector('td img')&&tr.children[tr.children.length-1].textContent.trim()!=='SENT').length;}
+function countPending(){return invDeptMatches().filter(tr=>!tr.querySelector('td img')).length;}
 function refreshBulkButtons(){
  const dept=invDeptFilter.value;
  if(sendAllDept)sendAllDept.value=dept;
@@ -173,6 +174,7 @@ function confirmGenerate(ev){
  return false;
 }
 invDeptFilter.addEventListener('change',()=>{invPage=1;renderInvPage();refreshBulkButtons();});
+invSearch.addEventListener('input',()=>{invPage=1;renderInvPage();});
 renderInvPage();
 refreshBulkButtons();
 const removeSelBtn=document.getElementById('removeSelBtn');
