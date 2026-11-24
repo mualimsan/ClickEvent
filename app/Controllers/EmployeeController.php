@@ -10,7 +10,12 @@ final class EmployeeController {
  // Nama karyawan: huruf (termasuk beraksen), spasi, titik, koma, tanda petik, tanda hubung, tanda kurung; 1-50 karakter.
  public const NAME_MAX=50;
  // Nama disimpan huruf kapital di awal kata ("ACHMAD DJAOHARI" -> "Achmad Djaohari"), spasi ganda dirapikan.
- public static function nameCase(string $v):string{return mb_convert_case(mb_strtolower(preg_replace('/\s+/u',' ',trim($v))),MB_CASE_TITLE,'UTF-8');}
+ public static function nameCase(string $v,bool $keepCaps=false):string{
+  $v=preg_replace('/\s+/u',' ',trim($v));
+  // Import Excel (huruf besar semua) dirapikan penuh; dari form, huruf besar yang diketik user (mis. VIP) dipertahankan.
+  if(!$keepCaps)return mb_convert_case(mb_strtolower($v),MB_CASE_TITLE,'UTF-8');
+  return preg_replace_callback('/(^|[\s(\-])(\p{L})/u',fn($m)=>$m[1].mb_strtoupper($m[2]),$v);
+ }
  public static function validName(string $v):bool{return $v!==''&&mb_strlen($v)<=self::NAME_MAX&&(bool)preg_match("/^\\p{L}[\\p{L} .,'()\\-]*$/u",$v);}
  // NIK: karyawan tetap (angka) maupun PKL/outsourcing/internship/driver, mis. BAA-2409065, PSB-2509001, VOC-2608132, DRV.01, INT-NEW 001.
  // Spasi di tengah boleh (dirapikan jadi satu spasi), tidak boleh di awal/akhir.
@@ -28,7 +33,7 @@ final class EmployeeController {
   if($_SERVER['REQUEST_METHOD']==='POST'){verify_csrf();
    $back=$id?'/employees/'.$id.'/edit':'/employees/create';$isNew=!$id;
    $in=fn($k)=>trim((string)($_POST[$k]??''));
-   $data=[self::normNik($in('nik')),self::nameCase($in('name')),$in('section'),$in('department'),$in('division'),$in('email'),in_array($_POST['status']??'',['ACTIVE','INACTIVE'],true)?$_POST['status']:'ACTIVE'];
+   $data=[self::normNik($in('nik')),self::nameCase($in('name'),true),$in('section'),$in('department'),$in('division'),$in('email'),in_array($_POST['status']??'',['ACTIVE','INACTIVE'],true)?$_POST['status']:'ACTIVE'];
    // Gagal: tampilkan pesan & kembalikan isian form supaya tidak perlu mengetik ulang.
    $fail=function(string $msg) use($back):never{$old=$_POST;unset($old['_csrf']);$_SESSION['_old_employee']=$old;flash('error',$msg);redirect($back);};
    if(!self::validNik($data[0]))$fail('NIK hanya boleh berisi huruf, angka, spasi, titik, atau tanda hubung (maksimal 20 karakter).');

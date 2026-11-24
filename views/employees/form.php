@@ -24,10 +24,10 @@ $curSection=$fv['section']??'';
 </div>
 </div>
 <script>
-// Nama: huruf awal setiap kata otomatis kapital saat diketik (sama dengan yang disimpan sistem).
+// Nama: huruf awal setiap kata otomatis kapital saat diketik; huruf kapital lain (mis. VIP) tetap.
 function nameTitle(el){
  const pos=el.selectionStart;
- el.value=el.value.replace(/[^\p{L} .,'()\-]/gu,'').replace(/^[ .'\-]+/,'').slice(0,50).toLowerCase().replace(/(^|[\s(\-])(\p{L})/gu,(m,a,b)=>a+b.toUpperCase());
+ el.value=el.value.replace(/[^\p{L} .,'()\-]/gu,'').replace(/^[ .'\-]+/,'').slice(0,50).replace(/(^|[\s(\-])(\p{L})/gu,(m,a,b)=>a+b.toUpperCase());
  el.setSelectionRange(pos,pos);document.getElementById('nameCount').textContent=el.value.length;
 }
 nikInput.addEventListener('input',()=>{nikInput.value=nikInput.value.toUpperCase().replace(/[^A-Z0-9. \-]/g,'').replace(/^ +/,'').replace(/ {2,}/g,' ').slice(0,20);});
